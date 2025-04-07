@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "CustomLookAndFeel.h"
 #include "PluginProcessor.h"
 #include <JuceHeader.h>
 
@@ -29,10 +30,10 @@ class GainAudioProcessorEditor : public juce::AudioProcessorEditor
     // access the processor object that created it.
     GainAudioProcessor &audioProcessor;
 
-    float knobTextHeight = 20.0f;
+    float knobTextHeight = 12.0f;
 
     juce::Slider knob;
-    juce::LookAndFeel_V4 customLookAndFeel;
+    CustomLookAndFeel customLookAndFeel;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(GainAudioProcessorEditor)
 };

@@ -21,22 +21,16 @@
 #include "PluginProcessor.h"
 
 //==============================================================================
-GainAudioProcessorEditor::GainAudioProcessorEditor(GainAudioProcessor &p) : AudioProcessorEditor(&p), audioProcessor(p)
+GainAudioProcessorEditor::GainAudioProcessorEditor(GainAudioProcessor &p)
+    : AudioProcessorEditor(&p), audioProcessor(p)
 {
-    setSize(250, 200);
+    setSize(500, 500);
 
-    // Add a custom font
+    LookAndFeel_V4::setDefaultLookAndFeel(&customLookAndFeel);
 
-    // Set the custom font as the default font
-    juce::Font customFont(juce::Typeface::createSystemTypefaceFor(BinaryData::NeverMindHandRegular_ttf,
-                                                                  BinaryData::NeverMindHandRegular_ttfSize));
-
-    customLookAndFeel.setDefaultSansSerifTypeface(customFont.getTypefacePtr());
-
-    juce::LookAndFeel_V4::setDefaultLookAndFeel(&customLookAndFeel);
     addAndMakeVisible(knob);
-    knob.setSliderStyle(juce::Slider::Rotary);
-    knob.setTextBoxStyle(juce::Slider::TextBoxBelow, true, 50, knobTextHeight);
+    knob.setSliderStyle(juce::Slider::RotaryVerticalDrag);
+    knob.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 200, 200);
     knob.setTextValueSuffix(" dB");
     knob.setRange(-60.0, 30, 0.1);
     knob.setValue(0);
