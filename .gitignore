@@ -1,7 +1,10 @@
-# Prerequisites
+# Whatever
 *.d
 build/
 *.vscode
+**/photoshop
+
+**.vs
 
 # Compiled Object files
 *.slo
@@ -18,10 +21,6 @@ build/
 *.dylib
 *.dll
 
-# Fortran module files
-*.mod
-*.smod
-
 # Compiled Static libraries
 *.lai
 *.la
@@ -33,7 +32,5 @@ build/
 *.out
 *.app
 
-# Fonts
-**/NeverMindHand
 **/Builds
 **/JuceLibraryCode

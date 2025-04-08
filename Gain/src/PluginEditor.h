@@ -10,19 +10,19 @@
 
 #include "CustomLookAndFeel.h"
 #include "PluginProcessor.h"
-#include <JuceHeader.h>
+#include "juce_audio_utils/juce_audio_utils.h"
 
 //==============================================================================
 /**
  */
-class GainAudioProcessorEditor : public juce::AudioProcessorEditor
+class GainAudioProcessorEditor : public AudioProcessorEditor
 {
   public:
     GainAudioProcessorEditor(GainAudioProcessor &);
     ~GainAudioProcessorEditor() override;
 
     //==============================================================================
-    void paint(juce::Graphics &) override;
+    void paint(Graphics &) override;
     void resized() override;
 
   private:
@@ -32,8 +32,9 @@ class GainAudioProcessorEditor : public juce::AudioProcessorEditor
 
     float knobTextHeight = 12.0f;
 
-    juce::Slider knob;
     CustomLookAndFeel customLookAndFeel;
+    std::unique_ptr<Image> backgroundImage;
+    Slider knob;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(GainAudioProcessorEditor)
 };

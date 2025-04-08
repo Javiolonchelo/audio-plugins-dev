@@ -9,7 +9,7 @@
 #pragma once
 
 #include "PluginEditor.h"
-#include <JuceHeader.h>
+#include "juce_audio_utils/juce_audio_utils.h"
 
 //==============================================================================
 /**

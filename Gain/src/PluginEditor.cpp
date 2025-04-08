@@ -24,38 +24,44 @@
 GainAudioProcessorEditor::GainAudioProcessorEditor(GainAudioProcessor &p)
     : AudioProcessorEditor(&p), audioProcessor(p)
 {
-    setSize(500, 500);
+    backgroundImage = std::make_unique<Image>(ImageCache::getFromMemory(BinaryData::background_jpg, BinaryData::background_jpgSize));
+    jassert(backgroundImage != nullptr);
+    jassert(backgroundImage->isValid());
 
+    setSize(400, 400);
     LookAndFeel_V4::setDefaultLookAndFeel(&customLookAndFeel);
 
-    addAndMakeVisible(knob);
+    knob.setRange(-30.0, 30, 0.1);
+    knob.setRotaryParameters(juce::MathConstants<float>::pi * 1.75f, juce::MathConstants<float>::pi * 3.25f, true);
     knob.setSliderStyle(juce::Slider::RotaryVerticalDrag);
-    knob.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 200, 200);
-    knob.setTextValueSuffix(" dB");
-    knob.setRange(-60.0, 30, 0.1);
+    knob.setTextBoxStyle(juce::Slider::NoTextBox, true, 0, 0);
     knob.setValue(0);
+    knob.setDoubleClickReturnValue(true, 0.0);
+    knob.setLookAndFeel(&customLookAndFeel);
+    addAndMakeVisible(knob);
 }
 
 GainAudioProcessorEditor::~GainAudioProcessorEditor()
 {
+    LookAndFeel_V4::setDefaultLookAndFeel(nullptr);
+    knob.setLookAndFeel(nullptr);
 }
 
 //==============================================================================
 void GainAudioProcessorEditor::paint(juce::Graphics &g)
 {
-    // (Our component is opaque, so we must completely fill the background with a solid colour)
-    g.fillAll(getLookAndFeel().findColour(juce::ResizableWindow::backgroundColourId));
-
-    g.setColour(juce::Colours::white);
-    g.setFont(30.0f);
-    juce::Rectangle<int> titleArea(0, 0, getWidth(), getHeight() - knobTextHeight);
-    g.drawFittedText("Gain", titleArea, juce::Justification::centred, 1);
+    g.fillAll(Colours::black);
+    g.drawImageWithin(*backgroundImage, 0, 0, getWidth(), getHeight(), RectanglePlacement::stretchToFit, false);
 }
 
 void GainAudioProcessorEditor::resized()
 {
-    // This is generally where you'll want to lay out the positions of any
-    // subcomponents in your editor..
-    int margin = 5;
-    knob.setBounds(margin, margin, getWidth() - 2 * margin, getHeight() - 2 * margin);
+    FlexBox f(FlexBox::Direction::column,
+              FlexBox::Wrap::noWrap,
+              FlexBox::AlignContent::center,
+              FlexBox::AlignItems::center,
+              FlexBox::JustifyContent::center);
+
+    f.items.add(FlexItem(knob).withFlex(1.0f).withWidth(COCO_SIZE_X).withHeight(COCO_SIZE_Y));
+    f.performLayout(getLocalBounds());
 }

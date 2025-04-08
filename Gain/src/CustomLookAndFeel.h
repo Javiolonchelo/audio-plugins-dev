@@ -5,12 +5,16 @@
 
 #pragma once
 
-#include "CustomColours.h"
-#include <JuceHeader.h>
+#include "BinaryData.h"
+#include "juce_core/juce_core.h"
+#include "juce_gui_basics/juce_gui_basics.h"
 
 // #include "melatonin_blur.h"
 
 using namespace juce;
+
+constexpr int COCO_SIZE_X = 3 * 109;
+constexpr int COCO_SIZE_Y = 3 * 114;
 
 class CustomLookAndFeel : public LookAndFeel_V4
 {
@@ -21,7 +25,7 @@ class CustomLookAndFeel : public LookAndFeel_V4
     // void drawLabel(Graphics &, Label &) override;
 
     //// Sliders
-    // virtual Label *createSliderTextBox(Slider &slider) override;
+    virtual void drawRotarySlider(Graphics &, int x, int y, int width, int height, float sliderPosProportional, float rotaryStartAngle, float rotaryEndAngle, Slider &) override;
 
     // Fonts
     virtual Typeface::Ptr getTypefaceForFont(const Font &) override;
@@ -31,4 +35,7 @@ class CustomLookAndFeel : public LookAndFeel_V4
     const float globalFontSize = 20.0f;
     const float globalFontSize2 = 12.0f;
     ColourGradient coldAndHot;
+
+    std::unique_ptr<Image> coco;
+    std::unique_ptr<Image> background;
 };

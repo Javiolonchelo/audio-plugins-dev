@@ -3,7 +3,7 @@
 
 cmake_minimum_required(VERSION 3.15)
 set(CMAKE_CXX_STANDARD 20)
-project(Gain VERSION 0.0.1)
+project(Gain VERSION 0.0.2 LANGUAGES CXX)
 
 set(BAD_INTERNET_CONNECTION ON)
 
@@ -54,55 +54,53 @@ FetchContent_MakeAvailable(JUCE)
 # juce_set_vst2_sdk_path(...) juce_set_aax_sdk_path(...)
 juce_add_plugin(
     ${PROJECT_NAME}
-    COMPANY_NAME
-    ${COMPANY_NAME}
-    IS_SYNTH
-    FALSE
-    NEEDS_MIDI_INPUT
-    FALSE
-    NEEDS_MIDI_OUTPUT
-    FALSE
-    IS_MIDI_EFFECT
-    FALSE
-    EDITOR_WANTS_KEYBOARD_FOCUS
-    FALSE
-    PLUGIN_MANUFACTURER_CODE
-    ${PLUGIN_MANUFACTURER_CODE}
-    PLUGIN_CODE
-    ${PLUGIN_CODE}
-    FORMATS
-    ${FORMATS}
-    PRODUCT_NAME
-    ${PLUGIN_FINAL_NAME}
-    BUNDLE_ID
-    com.dBobStudio.${PLUGIN_FINAL_NAME}
-    COPY_PLUGIN_AFTER_BUILD
-    TRUE
+    BUNDLE_ID com.dBobStudio.${PLUGIN_FINAL_NAME}
+    COMPANY_NAME ${COMPANY_NAME}
+    COPY_PLUGIN_AFTER_BUILD TRUE
+    EDITOR_WANTS_KEYBOARD_FOCUS FALSE
+    FORMATS ${FORMATS}
+    IS_MIDI_EFFECT FALSE
+    IS_SYNTH FALSE
+    NEEDS_MIDI_INPUT FALSE
+    NEEDS_MIDI_OUTPUT FALSE
+    PLUGIN_CODE ${PLUGIN_CODE}
+    PLUGIN_MANUFACTURER_CODE ${PLUGIN_MANUFACTURER_CODE}
+    PRODUCT_NAME ${PLUGIN_FINAL_NAME}
 )
-juce_add_binary_data(BinaryData SOURCES
-    ${CMAKE_SOURCE_DIR}/assets/lmroman12-regular.otf
-    )
-juce_generate_juce_header(${PROJECT_NAME})
 
-target_sources(
-    ${PROJECT_NAME}
-    PRIVATE
-        # .cpp
-        ${SOURCE_PATH}/CustomLookAndFeel.cpp
-        ${SOURCE_PATH}/PluginEditor.cpp
-        ${SOURCE_PATH}/PluginProcessor.cpp
-        # .h
-        ${SOURCE_PATH}/CustomLookAndFeel.h
-        ${SOURCE_PATH}/PluginEditor.h
-        ${SOURCE_PATH}/PluginProcessor.h
-        # $<TARGET_PROPERTY:${PROJECT_NAME},JUCE_GENERATED_SOURCES_DIRECTORY>/JuceHeader.h
+juce_add_binary_data(BinaryData SOURCES
+    # Images
+    ${CMAKE_SOURCE_DIR}/assets/background.jpg
+    ${CMAKE_SOURCE_DIR}/assets/coco.png
+
+    # Fonts
+    ${CMAKE_SOURCE_DIR}/assets/lmroman12-regular.otf
 )
-target_include_directories(${PROJECT_NAME} PRIVATE ${SOURCE_PATH})
+
+target_sources(${PROJECT_NAME}
+    PRIVATE
+    # .cpp
+    ${SOURCE_PATH}/CustomLookAndFeel.cpp
+    ${SOURCE_PATH}/PluginEditor.cpp
+    ${SOURCE_PATH}/PluginProcessor.cpp
+    # .h
+    ${SOURCE_PATH}/CustomLookAndFeel.h
+    ${SOURCE_PATH}/PluginEditor.h
+    ${SOURCE_PATH}/PluginProcessor.h
+)
+
+target_include_directories(${PROJECT_NAME}
+    PRIVATE
+    ${SOURCE_PATH}
+)
 message(STATUS "Source path: ${SOURCE_PATH}")
-target_compile_definitions(
-    ${PROJECT_NAME}
-    PUBLIC JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_VST3_CAN_REPLACE_VST2=0
-           DONT_SET_USING_JUCE_NAMESPACE
+
+target_compile_definitions(${PROJECT_NAME}
+    PUBLIC
+    DONT_SET_USING_JUCE_NAMESPACE
+    JUCE_USE_CURL=0
+    JUCE_VST3_CAN_REPLACE_VST2=0
+    JUCE_WEB_BROWSER=0
 )
 target_link_libraries(${PROJECT_NAME}
     PRIVATE

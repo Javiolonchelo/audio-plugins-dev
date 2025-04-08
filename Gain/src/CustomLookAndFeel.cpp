@@ -1,12 +1,12 @@
 //  Studio 2024 - All rights reserved
 
-#include <JuceHeader.h>
-
 #include "BinaryData.h"
 #include "CustomLookAndFeel.h"
 
 CustomLookAndFeel::CustomLookAndFeel()
 {
+    background = std::make_unique<Image>(ImageCache::getFromMemory(BinaryData::background_jpg, BinaryData::background_jpgSize));
+    coco = std::make_unique<Image>(ImageCache::getFromMemory(BinaryData::coco_png, BinaryData::coco_pngSize));
 }
 
 CustomLookAndFeel::~CustomLookAndFeel()
@@ -31,6 +31,27 @@ CustomLookAndFeel::~CustomLookAndFeel()
 //     textBox->setColour(Label::backgroundColourId, Colours::transparentBlack);
 //     return textBox;
 // }
+
+void CustomLookAndFeel::drawRotarySlider(Graphics &g, int x, int y, int width, int height, float sliderPosProportional, float rotaryStartAngle, float rotaryEndAngle, Slider &)
+{
+    if (coco->isValid())
+    {
+        int limit = std::min(width, height);
+        int cocoWidth = limit * coco->getWidth() / static_cast<float>(coco->getHeight());
+        int cocoHeight = limit * coco->getHeight() / static_cast<float>(coco->getWidth());
+
+        float limitWidth = jmin(cocoWidth, limit) / 1.5f;
+        float limitHeight = jmin(cocoHeight, limit) / 1.5f;
+        g.addTransform(AffineTransform::rotation(rotaryStartAngle + (rotaryEndAngle - rotaryStartAngle) * sliderPosProportional, x + width / 2.0f, y + height / 2.0f));
+
+        g.drawImage(*coco, x + (width - limitWidth) / 2.0f, y + (height - limitHeight) / 2.0f, limitWidth, limitHeight, 0, 0, coco->getWidth(), coco->getHeight());
+        g.drawRect(x + (width - limitWidth) / 2.0f, y + (height - limitHeight) / 2.0f, limitWidth, limitHeight); // Draw the border
+    }
+    else
+    {
+        g.fillAll(Colours::black);
+    }
+}
 
 // Fonts
 Typeface::Ptr CustomLookAndFeel::getTypefaceForFont(const Font &)
