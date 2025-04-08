@@ -1,17 +1,23 @@
 //  Studio 2024 - All rights reserved
 
-#include "BinaryData.h"
 #include "CustomLookAndFeel.h"
+#include "BinaryData.h"
+
+#include "CocoKnob.h"
 
 CustomLookAndFeel::CustomLookAndFeel()
 {
     background = std::make_unique<Image>(ImageCache::getFromMemory(BinaryData::background_jpg, BinaryData::background_jpgSize));
+    jassert(background != nullptr);
+    jassert(background->isValid());
+
     coco = std::make_unique<Image>(ImageCache::getFromMemory(BinaryData::coco_png, BinaryData::coco_pngSize));
+    jassert(coco != nullptr);
+    jassert(coco->isValid());
 }
 
 CustomLookAndFeel::~CustomLookAndFeel()
-{
-}
+= default;
 
 // void CustomLookAndFeel::drawLabel(Graphics &g, Label &label)
 //{
@@ -32,20 +38,21 @@ CustomLookAndFeel::~CustomLookAndFeel()
 //     return textBox;
 // }
 
-void CustomLookAndFeel::drawRotarySlider(Graphics &g, int x, int y, int width, int height, float sliderPosProportional, float rotaryStartAngle, float rotaryEndAngle, Slider &)
+void CustomLookAndFeel::drawRotarySlider(Graphics &g, int x, int y, int width, int height, float sliderPosProportional, float rotaryStartAngle, float rotaryEndAngle, Slider &slider)
 {
-    if (coco->isValid())
-    {
-        int limit = std::min(width, height);
-        int cocoWidth = limit * coco->getWidth() / static_cast<float>(coco->getHeight());
-        int cocoHeight = limit * coco->getHeight() / static_cast<float>(coco->getWidth());
+    if (dynamic_cast<CocoKnob *>(&slider) != nullptr) {
 
-        float limitWidth = jmin(cocoWidth, limit) / 1.5f;
-        float limitHeight = jmin(cocoHeight, limit) / 1.5f;
-        g.addTransform(AffineTransform::rotation(rotaryStartAngle + (rotaryEndAngle - rotaryStartAngle) * sliderPosProportional, x + width / 2.0f, y + height / 2.0f));
+        const auto w = static_cast<float>(width);
+        const auto h = static_cast<float>(height);
+        const auto w_coco = static_cast<float>(coco->getWidth()) * dynamic_cast<CocoKnob *>(&slider)->sizeMultiplier;
+        const auto h_coco = static_cast<float>(coco->getHeight()) * dynamic_cast<CocoKnob *>(&slider)->sizeMultiplier;
 
-        g.drawImage(*coco, x + (width - limitWidth) / 2.0f, y + (height - limitHeight) / 2.0f, limitWidth, limitHeight, 0, 0, coco->getWidth(), coco->getHeight());
-        g.drawRect(x + (width - limitWidth) / 2.0f, y + (height - limitHeight) / 2.0f, limitWidth, limitHeight); // Draw the border
+        g.addTransform(AffineTransform::rotation(rotaryStartAngle + (rotaryEndAngle - rotaryStartAngle) * sliderPosProportional, static_cast<float>(x) + w / 2.0f, static_cast<float>(y) + h / 2.0f));
+
+        // Modify the bright of coco image before drawing it
+
+        g.drawImage(*coco, x + (width - w_coco) / 2.0f, y + (height - h_coco) / 2.0f, w_coco, h_coco, 0, 0, coco->getWidth(), coco->getHeight());
+        g.drawRect(x + (width - w_coco) / 2.0f, y + (height - h_coco) / 2.0f, w_coco, h_coco); // Draw the border
     }
     else
     {

@@ -10,6 +10,7 @@
 
 #include "CustomLookAndFeel.h"
 #include "PluginProcessor.h"
+#include "CocoKnob.h"
 #include "juce_audio_utils/juce_audio_utils.h"
 
 //==============================================================================
@@ -18,7 +19,7 @@
 class GainAudioProcessorEditor : public AudioProcessorEditor
 {
   public:
-    GainAudioProcessorEditor(GainAudioProcessor &);
+    explicit GainAudioProcessorEditor(GainAudioProcessor &);
     ~GainAudioProcessorEditor() override;
 
     //==============================================================================
@@ -34,7 +35,7 @@ class GainAudioProcessorEditor : public AudioProcessorEditor
 
     CustomLookAndFeel customLookAndFeel;
     std::unique_ptr<Image> backgroundImage;
-    Slider knob;
+    CocoKnob knob;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(GainAudioProcessorEditor)
 };
