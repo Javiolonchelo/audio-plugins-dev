@@ -2,7 +2,9 @@
 *.d
 build/
 *.vscode
+*.idea
 **/photoshop
+cmake-build-*
 
 **.vs
 

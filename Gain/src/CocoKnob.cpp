@@ -3,12 +3,38 @@
 //
 
 #include "CocoKnob.h"
-void CocoKnob::paint(Graphics &g)
-{
-    Slider::paint(g);
+
+void CocoKnob::mouseDoubleClick(const MouseEvent &mouse_event) {
+    if (mouse_event.mods.isRightButtonDown()) {
+        lastCenter = mouse_event.getMouseDownPosition();
+        offset     = {0, 0};
+        DBG("lastCenter: " << lastCenter.x << ", " << lastCenter.y);
+    } else {
+        DBG("Slider value: " << getValue());
+        Slider::mouseDoubleClick(mouse_event);
+    }
 }
-void CocoKnob::mouseWheelMove(const MouseEvent &mouse_event, const MouseWheelDetails &mouse_wheel_details)
-{
+void CocoKnob::mouseDrag(const MouseEvent &event) {
+    if (event.mods.isRightButtonDown()) {
+        offset = event.getOffsetFromDragStart();
+        DBG("Drag offset: " << offset.x << ", " << offset.y);
+        repaint();
+    } else {  // Behave like a normal slider
+        DBG("Slider value: " << getValue());
+        Slider::mouseDrag(event);
+    }
+}
+
+void CocoKnob::mouseUp(const MouseEvent &event) {
+    if (event.mods.isRightButtonDown()) {
+        lastCenter += offset;
+        offset = {0, 0};
+        DBG("lastCenter: " << lastCenter.x << ", " << lastCenter.y);
+        Slider::mouseUp(event);
+    }
+}
+
+void CocoKnob::mouseWheelMove(const MouseEvent &, const MouseWheelDetails &mouse_wheel_details) {
     sizeMultiplier += mouse_wheel_details.deltaY * 0.1f;
     repaint();
 }

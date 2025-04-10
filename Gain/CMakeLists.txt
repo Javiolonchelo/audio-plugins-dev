@@ -3,7 +3,7 @@
 
 cmake_minimum_required(VERSION 3.15)
 set(CMAKE_CXX_STANDARD 20)
-project(Gain VERSION 0.0.2 LANGUAGES CXX)
+project(Gain VERSION 0.1.0 LANGUAGES CXX)
 
 set(BAD_INTERNET_CONNECTION ON)
 
@@ -37,7 +37,7 @@ else ()
     FetchContent_Declare(
             JUCE
             GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
-            GIT_TAG 8.0.4
+            GIT_TAG 8.0.7
     )
 endif ()
 # FetchContent_MakeAvailable(Catch2)

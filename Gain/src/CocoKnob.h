@@ -8,22 +8,14 @@
 
 using namespace juce;
 
-class CocoKnob:public Slider
-{
-  public:
-    // ~CocoKnob() override;
-    // void valueChanged() override;
-    void paint(Graphics &) override;
-    // void resized() override;
-    // void mouseDown(const MouseEvent &) override;
-    // void mouseUp(const MouseEvent &) override;
+class CocoKnob final : public Slider {
+   public:
+    void mouseDoubleClick(const MouseEvent &) override;
+    void mouseDrag(const MouseEvent &event) override;
+    void mouseUp(const MouseEvent &event) override;
     void mouseWheelMove(const MouseEvent &, const MouseWheelDetails &) override;
 
-    // void mouseDrag(const MouseEvent &) override;
-    // void modifierKeysChanged(const ModifierKeys &) override;
-    // void mouseMove(const MouseEvent &) override;
-    // void mouseExit(const MouseEvent &) override;
-    // void mouseEnter(const MouseEvent &) override;
-
-    float sizeMultiplier = 1.0f;
+    float      sizeMultiplier = 0.3f;
+    Point<int> offset         = {0, 0};
+    Point<int> lastCenter     = {0, 0};
 };
