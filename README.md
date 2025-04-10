@@ -13,20 +13,20 @@ you too!
     - French Coco
     - Coco Loco Gain
 
-![](Gain/assets/coco.png)
+![Picture of Coco](Gain/assets/coco.png)
 
 - [ ] **"Huh?" cat delay**
 
 > [!IMPORTANT]
 > Owner must be contacted first.
 
-![](https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExamF3c25md3B4OWVya3N1Y3BvYWw1aDVwc3NlaHpuOHM4d3M0cXRlaiZlcD12MV9naWZzX3NlYXJjaCZjdD1n/GRk3GLfzduq1NtfGt5/giphy.gif)
+![Picture of Huh cat](https://i.giphy.com/GRk3GLfzduq1NtfGt5.webp)
 
 - [ ] **Spinning cat modulator, maybe a chorus? Or even just a Leslie speaker effect?**
 
 > [!IMPORTANT]
 > Maxwell's owner must be contacted first.
 
-![](https://media.tenor.com/qJRMLPlR3_8AAAAj/maxwell-cat.gif)
+![Picture of Maxwell](https://media.tenor.com/qJRMLPlR3_8AAAAj/maxwell-cat.gif)
 
 
