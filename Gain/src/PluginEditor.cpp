@@ -12,13 +12,18 @@ GainAudioProcessorEditor::GainAudioProcessorEditor(GainAudioProcessor &p)
     jassert(backgroundImage != nullptr);
     jassert(backgroundImage->isValid());
 
-    setSize(400, 400);
+    setResizable(true, true);
+    setResizeLimits(10, 10, 10000, 10000);
+    setSize(800, 800);
+    getConstrainer()->setFixedAspectRatio(1.0f);
     LookAndFeel_V4::setDefaultLookAndFeel(&customLookAndFeel);
 
     knob->setRange(-30.0, 30, 0.1);
-    knob->lastCenter = {getWidth() / 2, getHeight() / 2};
-    knob->setRotaryParameters(MathConstants<float>::pi * 4.0f / 3.0f, MathConstants<float>::pi * 8.0f / 3.0f,
-                              true);  // From
+    const auto w             = static_cast<float>(getWidth());
+    const auto h             = static_cast<float>(getHeight());
+    knob->lastCenter         = {static_cast<int>(w / 2), static_cast<int>(h / 2)};
+    knob->lastCenterRelative = {knob->lastCenter.x / w, knob->lastCenter.y / h};
+    knob->setRotaryParameters(MathConstants<float>::pi * 4.0f / 3.0f, MathConstants<float>::pi * 8.0f / 3.0f, true);
     knob->setSliderStyle(Slider::RotaryVerticalDrag);
     knob->setTextBoxStyle(Slider::NoTextBox, true, 0, 0);
     knob->setValue(0);

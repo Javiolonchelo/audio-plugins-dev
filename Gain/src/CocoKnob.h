@@ -14,8 +14,10 @@ class CocoKnob final : public Slider {
     void mouseDrag(const MouseEvent &event) override;
     void mouseUp(const MouseEvent &event) override;
     void mouseWheelMove(const MouseEvent &, const MouseWheelDetails &) override;
+    void resized() override;
 
-    float      sizeMultiplier = 0.3f;
-    Point<int> offset         = {0, 0};
-    Point<int> lastCenter     = {0, 0};
+    float        sizeMultiplier     = 0.3f;
+    Point<int>   offset             = {0, 0};
+    Point<int>   lastCenter         = {0, 0};
+    Point<float> lastCenterRelative = {0.0f, 0.0f};
 };

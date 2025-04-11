@@ -3,7 +3,7 @@
 
 cmake_minimum_required(VERSION 3.15)
 set(CMAKE_CXX_STANDARD 20)
-project(Gain VERSION 0.1.0 LANGUAGES CXX)
+project(Gain VERSION 0.1.1 LANGUAGES CXX)
 
 set(BAD_INTERNET_CONNECTION ON)
 
