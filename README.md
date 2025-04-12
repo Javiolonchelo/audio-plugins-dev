@@ -5,13 +5,8 @@ you too!
 
 ## Plugin Projects
 
-- [ ] **Gain Plugin.** Currently working on this one. It's based on my friend and fellow artist Adriana Proenza's cat (
-  Coco). We need some name ideas, this is what we have so far:
-    - Coco Gain
-    - Coconut Gain
-    - French Gain
-    - French Coco
-    - Coco Loco Gain
+- [ ] **Gain Plugin,** also known as ***French Coconut Gain***. Currently working on this one. It's based on my friend
+  and fellow artist Adriana Proenza's cat (Coco).
 
 ![Picture of Coco](Gain/assets/coco.png)
 

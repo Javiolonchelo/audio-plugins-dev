@@ -2,6 +2,7 @@
 
 #include "PluginEditor.h"
 #include "juce_audio_utils/juce_audio_utils.h"
+#include "common.h"
 
 class GainAudioProcessor : public AudioProcessor
 #if JucePlugin_Enable_ARA
@@ -41,6 +42,10 @@ class GainAudioProcessor : public AudioProcessor
     void getStateInformation(MemoryBlock &destData) override;
     void setStateInformation(const void *data, int sizeInBytes) override;
 
+    std::unique_ptr<AudioProcessorValueTreeState> apvts;
+
    private:
+    static AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(GainAudioProcessor)
 };

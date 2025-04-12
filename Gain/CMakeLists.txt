@@ -3,7 +3,7 @@
 
 cmake_minimum_required(VERSION 3.15)
 set(CMAKE_CXX_STANDARD 20)
-project(Gain VERSION 0.1.1 LANGUAGES CXX)
+project(Gain VERSION 0.1.2 LANGUAGES CXX)
 
 set(BAD_INTERNET_CONNECTION ON)
 
@@ -12,7 +12,7 @@ set(COMPANY_NAME "dBob Studio")
 set(PLUGIN_MANUFACTURER_CODE dBob)
 set(PLUGIN_CODE Gain)
 set(FORMATS AU VST3 Standalone)
-set(PLUGIN_FINAL_NAME Gain)
+set(PLUGIN_FINAL_NAME "French Coconut Gain")
 
 # Paths
 set(SOURCE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -20,33 +20,23 @@ set(SOURCE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/src)
 # Fetch the libraries
 include(FetchContent)
 if (BAD_INTERNET_CONNECTION)
-    # FetchContent_Declare(
-    #     Catch2
-    #     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/offline/Catch2/"
-    # )
     FetchContent_Declare(
             JUCE
             SOURCE_DIR "$ENV{JUCE_PATH}"
     )
 else ()
-    # FetchContent_Declare(
-    #     Catch2
-    #     GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-    #     GIT_TAG v3.7.1
-    # )
     FetchContent_Declare(
             JUCE
             GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
             GIT_TAG 8.0.7
     )
 endif ()
-# FetchContent_MakeAvailable(Catch2)
 FetchContent_MakeAvailable(JUCE)
 
 # juce_set_vst2_sdk_path(...) juce_set_aax_sdk_path(...)
 juce_add_plugin(
         ${PROJECT_NAME}
-        BUNDLE_ID com.dBobStudio.${PLUGIN_FINAL_NAME}
+        BUNDLE_ID com.dBobStudio.FrenchCoconutGain
         COMPANY_NAME ${COMPANY_NAME}
         COPY_PLUGIN_AFTER_BUILD TRUE
         EDITOR_WANTS_KEYBOARD_FOCUS FALSE
@@ -58,6 +48,7 @@ juce_add_plugin(
         PLUGIN_CODE ${PLUGIN_CODE}
         PLUGIN_MANUFACTURER_CODE ${PLUGIN_MANUFACTURER_CODE}
         PRODUCT_NAME ${PLUGIN_FINAL_NAME}
+        JUCE_COPY_PLUGIN_AFTER_BUILD TRUE
 )
 
 juce_add_binary_data(BinaryData SOURCES
@@ -66,7 +57,7 @@ juce_add_binary_data(BinaryData SOURCES
         ${CMAKE_SOURCE_DIR}/assets/coco.png
 
         # Fonts
-        ${CMAKE_SOURCE_DIR}/assets/lmroman12-regular.otf
+        ${CMAKE_SOURCE_DIR}/assets/fonts/French_Fries.ttf
 )
 
 target_sources(${PROJECT_NAME}

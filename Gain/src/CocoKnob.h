@@ -8,16 +8,18 @@
 
 using namespace juce;
 
-class CocoKnob final : public Slider {
+class CocoKnob : public Slider, public ChangeBroadcaster
+{
    public:
-    void mouseDoubleClick(const MouseEvent &) override;
-    void mouseDrag(const MouseEvent &event) override;
-    void mouseUp(const MouseEvent &event) override;
-    void mouseWheelMove(const MouseEvent &, const MouseWheelDetails &) override;
-    void resized() override;
+    // Constructor
+    CocoKnob();
 
-    float        sizeMultiplier     = 0.3f;
-    Point<int>   offset             = {0, 0};
-    Point<int>   lastCenter         = {0, 0};
-    Point<float> lastCenterRelative = {0.0f, 0.0f};
+    void mouseDoubleClick(const MouseEvent &) override;
+    void mouseDrag(const MouseEvent &) override;
+    void mouseDown(const MouseEvent &) override;
+    void mouseUp(const MouseEvent &) override;
+    void mouseWheelMove(const MouseEvent &, const MouseWheelDetails &) override;
+
+   private:
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(CocoKnob)
 };

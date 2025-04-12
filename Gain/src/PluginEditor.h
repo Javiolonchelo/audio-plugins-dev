@@ -1,26 +1,42 @@
 #pragma once
 
+#include "common.h"
 #include "CocoKnob.h"
 #include "CustomLookAndFeel.h"
 #include "PluginProcessor.h"
-#include "juce_audio_utils/juce_audio_utils.h"
 
-class GainAudioProcessorEditor final : public AudioProcessorEditor {
+class GainAudioProcessorEditor : public AudioProcessorEditor
+{
    public:
     explicit GainAudioProcessorEditor(GainAudioProcessor &);
     ~GainAudioProcessorEditor() override;
-
     void paint(Graphics &) override;
     void resized() override;
 
    private:
-    GainAudioProcessor &audioProcessor;
+    // Mouse callbacks
+    void mouseDoubleClick(const MouseEvent &) override;
+    void mouseDrag(const MouseEvent &) override;
+    void mouseUp(const MouseEvent &) override;
+    void mouseWheelMove(const MouseEvent &, const MouseWheelDetails &) override;
 
+    // Custom functions
+    void repaintMouseChanges() const;
+
+    // Member variables
+    GainAudioProcessor       &audioProcessor;
     CustomLookAndFeel         customLookAndFeel;
     std::unique_ptr<CocoKnob> knob;
-    std::unique_ptr<Image>    backgroundImage;
+    std::unique_ptr<Image>    background;
 
-    float knobTextHeight = 12.0f;
+    float        sizeMultiplier     = INITIAL_MULTIPLIER;
+    Point<int>   offset             = {0, 0};
+    Point<int>   lastCenter         = {STARTUP_CENTER, STARTUP_CENTER};
+    Point<float> lastCenterRelative = {0.5f, 0.5f};
+
+    // APVTS
+    std::unique_ptr<AudioProcessorValueTreeState>                  &apvts;
+    std::unique_ptr<AudioProcessorValueTreeState::SliderAttachment> knobAttachment;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(GainAudioProcessorEditor)
 };

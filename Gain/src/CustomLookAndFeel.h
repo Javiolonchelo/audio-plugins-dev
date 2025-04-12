@@ -11,17 +11,15 @@
 
 using namespace juce;
 
-constexpr int COCO_SIZE_X = 3 * 109;
-constexpr int COCO_SIZE_Y = 3 * 114;
-
-class CustomLookAndFeel final : public LookAndFeel_V4 {
+class CustomLookAndFeel final : public LookAndFeel_V4
+{
    public:
     CustomLookAndFeel();
     ~CustomLookAndFeel() override;
 
     // Sliders
-    void drawRotarySlider(Graphics &, int x, int y, int width, int height, float sliderPosProportional,
-                          float rotaryStartAngle, float rotaryEndAngle, Slider &) override;
+    void drawRotarySlider(Graphics &, int x, int y, int width, int height, float sliderPosProportional, float rotaryStartAngle, float rotaryEndAngle,
+                          Slider &) override;
 
     // Fonts
     Typeface::Ptr getTypefaceForFont(const Font &) override;

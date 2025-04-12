@@ -4,49 +4,43 @@
 
 #include "CocoKnob.h"
 
-void CocoKnob::mouseDoubleClick(const MouseEvent &mouse_event) {
-    if (mouse_event.mods.isRightButtonDown()) {
-        const auto w       = static_cast<float>(getWidth());
-        const auto h       = static_cast<float>(getHeight());
-        lastCenter         = mouse_event.getMouseDownPosition();
-        lastCenterRelative = {lastCenter.x / w, lastCenter.y / h};
-        offset             = {0, 0};
-        DBG("lastCenter: " << lastCenter.x << ", " << lastCenter.y);
-    } else {
-        DBG("Slider value: " << getValue());
-        Slider::mouseDoubleClick(mouse_event);
-    }
+CocoKnob::CocoKnob() : Slider(Slider::RotaryVerticalDrag, Slider::NoTextBox)
+{
+    setDoubleClickReturnValue(true, 0.0);
+    setTextBoxStyle(Slider::NoTextBox, true, 0, 0);
+    setRotaryParameters(MathConstants<float>::pi * 4.0f / 3.0f, MathConstants<float>::pi * 8.0f / 3.0f, true);
 }
-void CocoKnob::mouseDrag(const MouseEvent &event) {
-    if (event.mods.isRightButtonDown()) {
-        offset = event.getOffsetFromDragStart();
-        DBG("Drag offset: " << offset.x << ", " << offset.y);
-        repaint();
-    } else {  // Behave like a normal slider
-        DBG("Slider value: " << getValue());
-        Slider::mouseDrag(event);
+void CocoKnob::mouseDoubleClick(const MouseEvent& event)
+{
+    if (event.mods.isRightButtonDown())
+    {
+        const auto p = getParentComponent();
+        p->mouseDoubleClick(event.getEventRelativeTo(p));
     }
+    else { Slider::mouseDoubleClick(event); }
 }
 
-void CocoKnob::mouseUp(const MouseEvent &event) {
-    if (event.mods.isRightButtonDown()) {
-        const auto w = static_cast<float>(getWidth());
-        const auto h = static_cast<float>(getHeight());
-        lastCenter += offset;
-        lastCenterRelative = {lastCenter.x / w, lastCenter.y / h};
-        offset             = {0, 0};
-        DBG("lastCenter: " << lastCenter.x << ", " << lastCenter.y);
-        Slider::mouseUp(event);
+void CocoKnob::mouseDrag(const MouseEvent& event)
+{
+    if (event.mods.isRightButtonDown())
+    {
+        const auto p = getParentComponent();
+        p->mouseDrag(event.getEventRelativeTo(p));
     }
+    else { Slider::mouseDrag(event); }
 }
 
-void CocoKnob::mouseWheelMove(const MouseEvent &, const MouseWheelDetails &mouse_wheel_details) {
-    sizeMultiplier += mouse_wheel_details.deltaY * 0.1f;
-    repaint();
+void CocoKnob::mouseDown(const MouseEvent& event) { Slider::mouseDown(event); }
+
+void CocoKnob::mouseUp(const MouseEvent& event)
+{
+    const auto p = getParentComponent();
+    p->mouseUp(event.getEventRelativeTo(p));
+    Slider::mouseUp(event);
 }
 
-void CocoKnob::resized() {
-    lastCenter = {static_cast<int>(getWidth() * lastCenterRelative.x),
-                  static_cast<int>(getHeight() * lastCenterRelative.y)};
-    Slider::resized();
+void CocoKnob::mouseWheelMove(const MouseEvent& mouse_event, const MouseWheelDetails& mouse_wheel_details)
+{
+    const auto p = getParentComponent();
+    p->mouseWheelMove(mouse_event.getEventRelativeTo(p), mouse_wheel_details);
 }
