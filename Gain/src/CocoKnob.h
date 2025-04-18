@@ -8,7 +8,7 @@
 
 using namespace juce;
 
-class CocoKnob : public Slider, public ChangeBroadcaster
+class CocoKnob : public Slider
 {
    public:
     // void paint(Graphics &) override;

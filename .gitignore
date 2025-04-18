@@ -1,6 +1,7 @@
 # Whatever
 *.d
 build/
+docs/
 *.vscode
 *.idea
 **/photoshop
