@@ -24,9 +24,9 @@ void CustomLookAndFeel::drawRotarySlider(Graphics &g, int x, int y, int width, i
     const auto cocoPtr = dynamic_cast<CocoKnob *>(&slider);
     jassert(cocoPtr != nullptr);
 
-    const auto centerX       = x + width / 2;
-    const auto centerY       = y + height / 2;
-    const auto rotationAngle = rotaryStartAngle + (rotaryEndAngle - rotaryStartAngle) * sliderPosProportional;
+    const float centerX       = x + width / 2;
+    const float centerY       = y + height / 2;
+    const auto  rotationAngle = rotaryStartAngle + (rotaryEndAngle - rotaryStartAngle) * sliderPosProportional;
     g.addTransform(AffineTransform::rotation(rotationAngle, centerX, centerY));
 
     // This prevents the image from being drawn outside the bounds of the knob
@@ -38,7 +38,7 @@ void CustomLookAndFeel::drawRotarySlider(Graphics &g, int x, int y, int width, i
 // Fonts
 Typeface::Ptr CustomLookAndFeel::getTypefaceForFont(const Font &)
 {
-    return Typeface::createSystemTypefaceFor(BinaryData::French_Fries_ttf, BinaryData::French_Fries_ttfSize);
+    return Typeface::createSystemTypefaceFor(BinaryData::JuliaMonoExtraBoldItalic_ttf, BinaryData::JuliaMonoExtraBoldItalic_ttfSize);
 }
 
 Font CustomLookAndFeel::getLabelFont(Label &)

@@ -4,10 +4,10 @@
 AudioProcessorValueTreeState::ParameterLayout GainAudioProcessor::createParameterLayout()
 {
     std::vector<std::unique_ptr<RangedAudioParameter>> params;
-    params.push_back(std::make_unique<AudioParameterFloat>(P_GAIN_ID, P_GAIN_NAME, -30.0f, 30.0f, 0.0f));
-    params.push_back(std::make_unique<AudioParameterFloat>(P_X_ID, P_X_NAME, 0.0f, 1.0f, 0.5f));
-    params.push_back(std::make_unique<AudioParameterFloat>(P_Y_ID, P_Y_NAME, 0.0f, 1.0f, 0.5f));
-    params.push_back(std::make_unique<AudioParameterBool>(P_BYPASS_ID, P_BYPASS_NAME, false));
+    params.push_back(std::make_unique<AudioParameterFloat>(P_GAIN_ID, P_GAIN_NAME, -60.0f, 60.0f, 0.0f));
+    params.push_back(std::make_unique<AudioParameterBool>(P_BYPASS_ID, P_BYPASS_NAME, true));
+    // params.push_back(std::make_unique<AudioParameterFloat>(P_X_ID, P_X_NAME, 0.0f, 1.0f, 0.5f));
+    // params.push_back(std::make_unique<AudioParameterFloat>(P_Y_ID, P_Y_NAME, 0.0f, 1.0f, 0.5f));
     return {params.begin(), params.end()};
 }
 
@@ -21,7 +21,7 @@ GainAudioProcessor::GainAudioProcessor()
                          .withOutput("Output", AudioChannelSet::stereo(), true)
     #endif
                          ),
-      apvts(std::make_unique<AudioProcessorValueTreeState>(*this, nullptr, Identifier("French Coconut Gain"), createParameterLayout()))
+      apvts(std::make_unique<AudioProcessorValueTreeState>(*this, nullptr, "French Coconut Gain", createParameterLayout()))
 #endif
 {
 }
@@ -103,23 +103,19 @@ void GainAudioProcessor::processBlock(AudioBuffer<float> &buffer, MidiBuffer &mi
     ScopedNoDenormals noDenormals;
     const auto        numIns  = getTotalNumInputChannels();
     const auto        numOuts = getTotalNumOutputChannels();
+    const auto        N       = buffer.getNumSamples();
 
     for (auto i = numIns; i < numOuts; ++i) buffer.clear(i, 0, buffer.getNumSamples());
 
     for (int channel = 0; channel < numIns; ++channel)
     {
-        auto *channelData = buffer.getWritePointer(channel);
-
-        // Bypass
+        // Apply gain
         if (apvts->getParameter(P_BYPASS_ID)->getValue() == true)
         {
-            for (int i = 0; i < buffer.getNumSamples(); ++i) { channelData[i] = 0.0f; }
-        }
-        // Apply gain
-        else
-        {
-            const auto gain_dB = apvts->getParameter(P_GAIN_ID)->getValue();
-            for (int i = 0; i < buffer.getNumSamples(); ++i) { channelData[i] *= Decibels::decibelsToGain(gain_dB); }
+            auto      *y       = buffer.getWritePointer(channel);
+            const auto gain_dB = apvts->getRawParameterValue(P_GAIN_ID)->load();
+            const auto gain    = Decibels::decibelsToGain(gain_dB, -120.0f);
+            for (int n = 0; n < N; ++n) { y[n] *= gain; }
         }
     }
 }

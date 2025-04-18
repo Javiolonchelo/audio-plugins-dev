@@ -4,6 +4,25 @@
 
 #include "CocoKnob.h"
 
+// void CocoKnob::paint(Graphics& g)
+// {
+//     // dummy
+//     const auto       sizeMultiplier = 0.3f;
+//     const Point<int> lastCenter     = {200, 200};
+//     const Point<int> offset         = {0, 0};
+//
+//     const auto newWidth  = jmax(sizeMultiplier * getParentComponent()->getWidth(), 0.0f);
+//     const auto newHeight = jmax(sizeMultiplier * getParentComponent()->getHeight(), 0.0f);
+//     jassert(newWidth >= 0 && newHeight >= 0);
+//
+//     const auto x = lastCenter.x + offset.x - newWidth / 2;
+//     const auto y = lastCenter.y + offset.y - newHeight / 2;
+//
+//     setBounds(x, y, newWidth, newHeight);
+//
+//     Slider::paint(g);
+// }
+
 CocoKnob::CocoKnob() : Slider(Slider::RotaryVerticalDrag, Slider::NoTextBox)
 {
     setDoubleClickReturnValue(true, 0.0);

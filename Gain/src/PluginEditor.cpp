@@ -2,25 +2,48 @@
 
 #include <PluginProcessor.h>
 
-GainAudioProcessorEditor::GainAudioProcessorEditor(GainAudioProcessor &p) : AudioProcessorEditor(&p), audioProcessor(p), apvts(p.apvts)
+void GainAudioProcessorEditor::timerCallback() { repaint(); }
+
+GainAudioProcessorEditor::GainAudioProcessorEditor(GainAudioProcessor &p) : AudioProcessorEditor(&p), audioProcessor(p)
 {
     // General settings and UI
     MouseEvent::setDoubleClickTimeout(DOUBLE_CLICK_TIMEOUT);
     LookAndFeel_V4::setDefaultLookAndFeel(&customLookAndFeel);
     background = std::make_unique<Image>(ImageCache::getFromMemory(BinaryData::background_jpg, BinaryData::background_jpgSize));
-    knob       = std::make_unique<CocoKnob>();
     jassert(background != nullptr && background->isValid());
 
     // Layout management
     setResizable(true, false);
     setResizeLimits(MIN_SIZE, MIN_SIZE, MAX_SIZE, MAX_SIZE);
-    setSize(STARTUP_SIZE, STARTUP_SIZE);
-    getConstrainer()->setFixedAspectRatio(1.0f);
+    setSize(STARTUP_SIZE, STARTUP_SIZE + TITLE_HEIGHT);
+    getConstrainer()->setFixedAspectRatio(static_cast<float>(STARTUP_SIZE) / (STARTUP_SIZE + TITLE_HEIGHT));
 
     // Knob settings
-    knobAttachment = std::make_unique<AudioProcessorValueTreeState::SliderAttachment>(*apvts, P_GAIN_ID, *knob);
+    knob = std::make_unique<CocoKnob>();
     knob->setLookAndFeel(&customLookAndFeel);
+
     addAndMakeVisible(*knob);
+
+    // Bypass button settings
+    bypassButton = std::make_unique<TextButton>();
+    bypassButton->setBounds(0, TITLE_HEIGHT, 100, 100);
+    bypassButton->setButtonText("Bypass");
+    bypassButton->setClickingTogglesState(true);
+    bypassButton->setToggleable(true);
+    // addAndMakeVisible(*bypassButton);
+
+    // Title
+    title = std::make_unique<Label>();
+    title->setText("French Coconut Gain:  0.0 dB", dontSendNotification);
+    title->setJustificationType(Justification::centred);
+    addAndMakeVisible(*title);
+
+    // Attachments
+    knobAttachment   = std::make_unique<AudioProcessorValueTreeState::SliderAttachment>(*p.apvts, P_GAIN_ID, *knob);
+    bypassAttachment = std::make_unique<AudioProcessorValueTreeState::ButtonAttachment>(*p.apvts, P_BYPASS_ID, *bypassButton);
+
+    // Timer
+    startTimerHz(60);  // 60 FPS
 }
 
 GainAudioProcessorEditor::~GainAudioProcessorEditor()
@@ -31,13 +54,23 @@ GainAudioProcessorEditor::~GainAudioProcessorEditor()
 
 void GainAudioProcessorEditor::paint(juce::Graphics &g)
 {
-    g.drawImageWithin(*background, 0, 0, getWidth(), getHeight(), RectanglePlacement::stretchToFit, false);
+    g.drawRect(0, 0, getWidth(), TITLE_HEIGHT, Justification::centredLeft);
+
+    // Pad the value with spaces at beginning of string until it reaches 6 characters
+    const String value(audioProcessor.apvts->getRawParameterValue(P_GAIN_ID)->load(), 1);
+    const String titleText = "French Coconut Gain: " + value.paddedLeft(' ', 5) + " dB";
+    title->setText(titleText, dontSendNotification);
+    title->setBounds(0, 0, getWidth(), TITLE_HEIGHT);
+
+    g.drawImageWithin(*background, 0, TITLE_HEIGHT, getWidth(), getHeight() - TITLE_HEIGHT, RectanglePlacement::stretchToFit, false);
+    repaintMouseChanges();
 }
 
 void GainAudioProcessorEditor::resized()
 {
     lastCenter = {static_cast<int>(lastCenterRelative.x * getWidth()), static_cast<int>(lastCenterRelative.y * getHeight())};
-    repaintMouseChanges();
+    // title->setBounds(0, 0, getWidth(), TITLE_HEIGHT);
+    // repaintMouseChanges();
 }
 
 // MOUSE CALLBACKS /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -55,7 +88,7 @@ void GainAudioProcessorEditor::mouseDoubleClick(const MouseEvent &event)
         lastCenterRelative = {event.getMouseDownPosition().x / w, event.getMouseDownPosition().y / h};
         offset             = {0, 0};
 
-        repaintMouseChanges();
+        // repaintMouseChanges();
     }
 }
 
@@ -65,7 +98,7 @@ void GainAudioProcessorEditor::mouseDrag(const MouseEvent &event)
     {
         offset = event.getOffsetFromDragStart();
         DBG("Drag offset: " << offset.x << ", " << offset.y);
-        repaintMouseChanges();
+        // repaintMouseChanges();
     }
 }
 
@@ -80,7 +113,7 @@ void GainAudioProcessorEditor::mouseUp(const MouseEvent &event)
         offset             = {0, 0};
         DBG("lastCenter: " << lastCenter.x << ", " << lastCenter.y);
         DBG("lastCenterRelative: " << lastCenterRelative.x << ", " << lastCenterRelative.y);
-        repaintMouseChanges();
+        // repaintMouseChanges();
     }
 }
 
@@ -89,13 +122,15 @@ void GainAudioProcessorEditor::mouseWheelMove(const MouseEvent &, const MouseWhe
     sizeMultiplier += mouse_wheel_details.deltaY * 0.1f;
     sizeMultiplier = jlimit(0.0f, 1000.0f, sizeMultiplier);
     DBG("sizeMultiplier: " << sizeMultiplier);
-    repaintMouseChanges();
+    // repaintMouseChanges();
 }
 
 // CUSTOM FUNCTIONS ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void GainAudioProcessorEditor::repaintMouseChanges() const
 {
+    // if (knob == nullptr) return;
+
     const auto newWidth  = jmax(sizeMultiplier * getWidth(), 0.0f);
     const auto newHeight = jmax(sizeMultiplier * getHeight(), 0.0f);
     jassert(newWidth >= 0 && newHeight >= 0);

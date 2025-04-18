@@ -5,9 +5,13 @@
 #include "CustomLookAndFeel.h"
 #include "PluginProcessor.h"
 
-class GainAudioProcessorEditor : public AudioProcessorEditor
+class GainAudioProcessorEditor : public AudioProcessorEditor, private Timer
 {
    public:
+    // Timer
+    void timerCallback() override;
+
+    // Basic
     explicit GainAudioProcessorEditor(GainAudioProcessor &);
     ~GainAudioProcessorEditor() override;
     void paint(Graphics &) override;
@@ -24,10 +28,12 @@ class GainAudioProcessorEditor : public AudioProcessorEditor
     void repaintMouseChanges() const;
 
     // Member variables
-    GainAudioProcessor       &audioProcessor;
-    CustomLookAndFeel         customLookAndFeel;
-    std::unique_ptr<CocoKnob> knob;
-    std::unique_ptr<Image>    background;
+    GainAudioProcessor         &audioProcessor;
+    CustomLookAndFeel           customLookAndFeel;
+    std::unique_ptr<CocoKnob>   knob;
+    std::unique_ptr<Image>      background;
+    std::unique_ptr<TextButton> bypassButton;
+    std::unique_ptr<Label>      title;
 
     float        sizeMultiplier     = INITIAL_MULTIPLIER;
     Point<int>   offset             = {0, 0};
@@ -35,8 +41,9 @@ class GainAudioProcessorEditor : public AudioProcessorEditor
     Point<float> lastCenterRelative = {0.5f, 0.5f};
 
     // APVTS
-    std::unique_ptr<AudioProcessorValueTreeState>                  &apvts;
+    // std::unique_ptr<AudioProcessorValueTreeState>                  &apvts;
     std::unique_ptr<AudioProcessorValueTreeState::SliderAttachment> knobAttachment;
+    std::unique_ptr<AudioProcessorValueTreeState::ButtonAttachment> bypassAttachment;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(GainAudioProcessorEditor)
 };

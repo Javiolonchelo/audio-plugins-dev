@@ -11,7 +11,7 @@ using namespace juce;
 class CocoKnob : public Slider, public ChangeBroadcaster
 {
    public:
-    // Constructor
+    // void paint(Graphics &) override;
     CocoKnob();
 
     void mouseDoubleClick(const MouseEvent &) override;
