@@ -36,6 +36,9 @@ GainAudioProcessorEditor::GainAudioProcessorEditor(GainAudioProcessor &p) : Audi
     title = std::make_unique<Label>();
     title->setText("French Coconut Gain:  0.0 dB", dontSendNotification);
     title->setJustificationType(Justification::centred);
+    title->setBorderSize(BorderSize<int>(10));
+    const FontOptions opts(Font::getDefaultSerifFontName(), 20.0f, Font::bold);
+    title->setFont(opts);
     addAndMakeVisible(*title);
 
     // Attachments
@@ -54,23 +57,29 @@ GainAudioProcessorEditor::~GainAudioProcessorEditor()
 
 void GainAudioProcessorEditor::paint(juce::Graphics &g)
 {
-    g.drawRect(0, 0, getWidth(), TITLE_HEIGHT, Justification::centredLeft);
+    const auto newTitleHeight = TITLE_HEIGHT * getHeight() / (STARTUP_SIZE + TITLE_HEIGHT);
+
+    const Rectangle<int> r(0, 0, getWidth(), getHeight());
+    g.setColour(Colours::black);
+    g.fillRect(r);
+
+    // Title
+    const FontOptions opts(Font::getDefaultSerifFontName(), jmax(10.0f, newTitleHeight * 0.4f), Font::bold);
+    title->setFont(opts);
 
     // Pad the value with spaces at beginning of string until it reaches 6 characters
     const String value(audioProcessor.apvts->getRawParameterValue(P_GAIN_ID)->load(), 1);
     const String titleText = "French Coconut Gain: " + value.paddedLeft(' ', 5) + " dB";
     title->setText(titleText, dontSendNotification);
-    title->setBounds(0, 0, getWidth(), TITLE_HEIGHT);
+    title->setBounds(0, 0, getWidth(), newTitleHeight);
 
-    g.drawImageWithin(*background, 0, TITLE_HEIGHT, getWidth(), getHeight() - TITLE_HEIGHT, RectanglePlacement::stretchToFit, false);
+    g.drawImageWithin(*background, 0, newTitleHeight, getWidth(), getHeight() - newTitleHeight, RectanglePlacement::stretchToFit, false);
     repaintMouseChanges();
 }
 
 void GainAudioProcessorEditor::resized()
 {
     lastCenter = {static_cast<int>(lastCenterRelative.x * getWidth()), static_cast<int>(lastCenterRelative.y * getHeight())};
-    // title->setBounds(0, 0, getWidth(), TITLE_HEIGHT);
-    // repaintMouseChanges();
 }
 
 // MOUSE CALLBACKS /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

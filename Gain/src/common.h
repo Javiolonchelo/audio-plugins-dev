@@ -22,8 +22,8 @@ static const String P_BYPASS_NAME = "Bypass";
 
 // UI
 static constexpr int   STARTUP_SIZE       = 500;    // px
-static constexpr int   STARTUP_CENTER     = 250;    // px
-static constexpr int   MIN_SIZE           = 80;     // px
+static constexpr int   STARTUP_CENTER     = 350;    // px
+static constexpr int   MIN_SIZE           = 250;    // px
 static constexpr int   MAX_SIZE           = 10000;  // px
 static constexpr int   TITLE_HEIGHT       = 50;     // px
 static constexpr float INITIAL_MULTIPLIER = 0.5f;

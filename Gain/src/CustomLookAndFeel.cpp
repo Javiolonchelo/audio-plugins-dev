@@ -40,10 +40,3 @@ Typeface::Ptr CustomLookAndFeel::getTypefaceForFont(const Font &)
 {
     return Typeface::createSystemTypefaceFor(BinaryData::JuliaMonoExtraBoldItalic_ttf, BinaryData::JuliaMonoExtraBoldItalic_ttfSize);
 }
-
-Font CustomLookAndFeel::getLabelFont(Label &)
-{
-    const FontOptions fontOptions;
-    const Font        labelFont(fontOptions.withHeight(globalFontSize));
-    return labelFont;
-}

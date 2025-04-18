@@ -23,12 +23,8 @@ class CustomLookAndFeel final : public LookAndFeel_V4
 
     // Fonts
     Typeface::Ptr getTypefaceForFont(const Font &) override;
-    Font          getLabelFont(Label &font) override;
 
    private:
-    const float globalFontSize  = 20.0f;
-    const float globalFontSize2 = 12.0f;
-
     std::unique_ptr<Image> coco;
     std::unique_ptr<Image> background;
 };
