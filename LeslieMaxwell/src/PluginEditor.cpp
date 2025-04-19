@@ -22,10 +22,10 @@ LeslieMaxwellEditor::LeslieMaxwellEditor(LeslieMaxwellProcessor &p) : AudioProce
     setSize(STARTUP_SIZE, STARTUP_SIZE + TITLE_HEIGHT);
     getConstrainer()->setFixedAspectRatio(static_cast<float>(STARTUP_SIZE) / (STARTUP_SIZE + TITLE_HEIGHT));
 
-    // Knob settings
-    // knob = std::make_unique<CocoKnob>();
+    // Slider settings
+    vcoFreqSlider = std::make_unique<Slider>();
     // knob->setLookAndFeel(&customLookAndFeel);
-    // addAndMakeVisible(*knob);
+    addAndMakeVisible(*vcoFreqSlider);
 
     // Bypass button settings
     bypassButton = std::make_unique<TextButton>();
@@ -33,11 +33,11 @@ LeslieMaxwellEditor::LeslieMaxwellEditor(LeslieMaxwellProcessor &p) : AudioProce
     bypassButton->setButtonText("Bypass");
     bypassButton->setClickingTogglesState(true);
     bypassButton->setToggleable(true);
-    addAndMakeVisible(*bypassButton);
+    // addAndMakeVisible(*bypassButton);
 
     // Attachments
-    // knobAttachment   = std::make_unique<AudioProcessorValueTreeState::SliderAttachment>(*p.apvts, P_VCO_FREQ_ID, *knob);
-    bypassAttachment = std::make_unique<AudioProcessorValueTreeState::ButtonAttachment>(*p.apvts, P_BYPASS_ID, *bypassButton);
+    vcoFreqAttachment = std::make_unique<AudioProcessorValueTreeState::SliderAttachment>(*p.apvts, P_VCO_FREQ_ID, *vcoFreqSlider);
+    bypassAttachment  = std::make_unique<AudioProcessorValueTreeState::ButtonAttachment>(*p.apvts, P_BYPASS_ID, *bypassButton);
 
     // Timer
     startTimerHz(60);  // 60 FPS
@@ -57,6 +57,7 @@ void LeslieMaxwellEditor::paint(juce::Graphics &g)
     g.setColour(Colours::black);
     g.fillRect(r);
 
+    vcoFreqSlider->setBounds(0, newTitleHeight, getWidth(), getHeight() - newTitleHeight);
     // g.drawImageWithin(*background, 0, newTitleHeight, getWidth(), getHeight() - newTitleHeight, RectanglePlacement::stretchToFit, false);
 }
 
