@@ -47,5 +47,7 @@ class GainAudioProcessor : public AudioProcessor
    private:
     static AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
+    SmoothedValue<float> gain;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(GainAudioProcessor)
 };

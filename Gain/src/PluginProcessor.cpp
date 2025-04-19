@@ -69,17 +69,9 @@ const String GainAudioProcessor::getProgramName(int index) { return {}; }
 
 void GainAudioProcessor::changeProgramName(int index, const String &newName) {}
 
-void GainAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
-{
-    // Use this method as the place to do any pre-playback
-    // initialisation that you need..
-}
+void GainAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) { gain.reset(sampleRate, 0.02); }
 
-void GainAudioProcessor::releaseResources()
-{
-    // When playback stops, you can use this as an opportunity to free up any
-    // spare memory, etc.
-}
+void GainAudioProcessor::releaseResources() {}
 
 #ifndef JucePlugin_PreferredChannelConfigurations
 bool GainAudioProcessor::isBusesLayoutSupported(const BusesLayout &layouts) const
@@ -105,17 +97,16 @@ void GainAudioProcessor::processBlock(AudioBuffer<float> &buffer, MidiBuffer &mi
     const auto        numOuts = getTotalNumOutputChannels();
     const auto        N       = buffer.getNumSamples();
 
+    gain.setTargetValue(apvts->getRawParameterValue(P_GAIN_ID)->load());
+
     for (auto i = numIns; i < numOuts; ++i) buffer.clear(i, 0, buffer.getNumSamples());
 
     for (int channel = 0; channel < numIns; ++channel)
     {
-        // Apply gain
         if (apvts->getParameter(P_BYPASS_ID)->getValue() == true)
         {
-            auto      *y       = buffer.getWritePointer(channel);
-            const auto gain_dB = apvts->getRawParameterValue(P_GAIN_ID)->load();
-            const auto gain    = Decibels::decibelsToGain(gain_dB, -120.0f);
-            for (int n = 0; n < N; ++n) { y[n] *= gain; }
+            auto *y = buffer.getWritePointer(channel);
+            for (int n = 0; n < N; ++n) { y[n] *= Decibels::decibelsToGain(gain.getNextValue(), -120.0f); }
         }
     }
 }
@@ -128,8 +119,6 @@ void GainAudioProcessor::getStateInformation(MemoryBlock &destData) {}
 
 void GainAudioProcessor::setStateInformation(const void *data, int sizeInBytes)
 {
-    // Use this method to restore your parameters from the saved state
-    // (called after loading the editor)
     if (data != nullptr && sizeInBytes > 0)
     {
         MemoryInputStream stream(data, sizeInBytes, false);
