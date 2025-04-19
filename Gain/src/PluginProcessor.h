@@ -1,3 +1,7 @@
+// dBob Studio 2025
+// Javier Rodrigo López
+// javiolonchelo@gmail.com
+
 #pragma once
 
 #include "PluginEditor.h"

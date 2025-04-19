@@ -1,6 +1,6 @@
-//
-// Created by javiolonchelo on 4/12/2025.
-//
+// dBob Studio 2025
+// Javier Rodrigo López
+// javiolonchelo@gmail.com
 
 #ifndef COMMON_H
 #define COMMON_H

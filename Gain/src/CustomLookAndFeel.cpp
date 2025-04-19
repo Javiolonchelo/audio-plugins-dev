@@ -1,4 +1,6 @@
-//  Studio 2024 - All rights reserved
+// dBob Studio 2025
+// Javier Rodrigo López
+// javiolonchelo@gmail.com
 
 #include "CustomLookAndFeel.h"
 

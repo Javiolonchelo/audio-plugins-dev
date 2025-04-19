@@ -1,7 +1,6 @@
-// dBob Studio 2024
-//
-// Hao Feng Chen Fu
-// Javier Rodrigo L�pez
+// dBob Studio 2025
+// Javier Rodrigo López
+// javiolonchelo@gmail.com
 
 #pragma once
 
