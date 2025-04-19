@@ -14,6 +14,7 @@ This plugin is based on Adriana Proenza's cat: Coco. He's a very silly cat and I
 ## Under the hood
 
 It's just a simple gain gain plugin which implements the equation:
+
 $$y[n] = x[n] * k$$
 
 Where $k$ is the linear gain value. As you can see, it's just a multiplication.
@@ -27,12 +28,19 @@ According to **Stefano D'Angelo** in [his talk at The Audio Programmer](https://
 
 I highly recommend watching the video for a deeper understanding of these concepts. Also, Stefano's company Orastron maintains a super cool library called [Brickworks](https://github.com/orastron/brickworks).
 
+### The chosen solution
+
 To solve the first one, we use a logarithmic Gain parameter. This means we specify the gain in decibels (dB) instead of a linear value. The conversion is done using the following formula:
-$$G = 10^{\frac{k}{10}}$$
+
+$$G = 10^{\frac{k}{20}}$$
 
 To solve the second one, we use what is usually called a fixed time ramp. This means that in a fixed time window (in our case, 20 ms), we will get the new value of the gain by applying a linear interpolation between the current value and the new value.
 
-TODO: Add the actual formula 
+TODO: Add the equation for fixed time ramp 
+
+So, in the end, the actual processing looks like this:
+
+TODO: Add the final equation 
 
 > [!NOTE]
 > For more information, check this video by The Audio Programmer: [JUCE Tutorial 18 - Smoothing Parameters With The Linear Smoothed Value Class](https://www.youtube.com/watch?v=2FkxKz37kHs).
