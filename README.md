@@ -5,16 +5,11 @@ you too!
 
 ## Plugin Projects
 
-- [ ] **Gain Plugin,** also known as ***French Coconut Gain***. Currently working on this one. It's based on my friend and fellow artist Adriana Proenza's cat: Coco. [Click here to know more about this plugin.](Gain/).
-
+- [ ] **Gain Plugin,** also known as ***French Coconut Gain***. Currently working on this one. It's based on my friend
+  and fellow artist Adriana Proenza's cat: Coco. [Click here](Gain/) to know more about this plugin.
 - [ ] **"Huh?" cat delay**
-
-> [!IMPORTANT]
-> Owner must be contacted first.
-
-![Picture of Huh cat](https://i.giphy.com/GRk3GLfzduq1NtfGt5.webp)
-
-- [ ] **Leslie Maxwell.** Leslie Rotary Speaker model based on 
+- [ ] **Leslie Maxwell.** Leslie Rotary Speaker model based on a DAFX
+  paper. [Click here](LeslieMaxwell/) to know more about this plugin.
 
 > [!NOTE]
 > Dingus the cat by alwayshasbean \[CC-BY\] via Poly Pizza
