@@ -23,9 +23,10 @@ LeslieMaxwellEditor::LeslieMaxwellEditor(LeslieMaxwellProcessor &p) : AudioProce
     getConstrainer()->setFixedAspectRatio(static_cast<float>(STARTUP_SIZE) / (STARTUP_SIZE + TITLE_HEIGHT));
 
     // Slider settings
-    vcoFreqSlider = std::make_unique<Slider>();
-    // knob->setLookAndFeel(&customLookAndFeel);
+    vcoFreqSlider  = std::make_unique<Slider>();
+    vcoDepthSlider = std::make_unique<Slider>();
     addAndMakeVisible(*vcoFreqSlider);
+    addAndMakeVisible(*vcoDepthSlider);
 
     // Bypass button settings
     bypassButton = std::make_unique<TextButton>();
@@ -36,8 +37,9 @@ LeslieMaxwellEditor::LeslieMaxwellEditor(LeslieMaxwellProcessor &p) : AudioProce
     // addAndMakeVisible(*bypassButton);
 
     // Attachments
-    vcoFreqAttachment = std::make_unique<AudioProcessorValueTreeState::SliderAttachment>(*p.apvts, P_VCO_FREQ_ID, *vcoFreqSlider);
-    bypassAttachment  = std::make_unique<AudioProcessorValueTreeState::ButtonAttachment>(*p.apvts, P_BYPASS_ID, *bypassButton);
+    vcoFreqAttachment  = std::make_unique<AudioProcessorValueTreeState::SliderAttachment>(*p.apvts, P_VCO_FREQ_ID, *vcoFreqSlider);
+    vcoDepthAttachment = std::make_unique<AudioProcessorValueTreeState::SliderAttachment>(*p.apvts, P_VCO_DEPTH_ID, *vcoDepthSlider);
+    bypassAttachment   = std::make_unique<AudioProcessorValueTreeState::ButtonAttachment>(*p.apvts, P_BYPASS_ID, *bypassButton);
 
     // Timer
     startTimerHz(60);  // 60 FPS
@@ -57,7 +59,8 @@ void LeslieMaxwellEditor::paint(juce::Graphics &g)
     g.setColour(Colours::black);
     g.fillRect(r);
 
-    vcoFreqSlider->setBounds(0, newTitleHeight, getWidth(), getHeight() - newTitleHeight);
+    vcoFreqSlider->setBounds(0, newTitleHeight, getWidth(), newTitleHeight);
+    vcoDepthSlider->setBounds(0, 2 * newTitleHeight, getWidth(), newTitleHeight);
     // g.drawImageWithin(*background, 0, newTitleHeight, getWidth(), getHeight() - newTitleHeight, RectanglePlacement::stretchToFit, false);
 }
 

@@ -32,6 +32,7 @@ class LeslieMaxwellEditor : public AudioProcessorEditor, private Timer
     // Member variables
     LeslieMaxwellProcessor &audioProcessor;
     std::unique_ptr<Slider> vcoFreqSlider;
+    std::unique_ptr<Slider> vcoDepthSlider;
     // CustomLookAndFeel           customLookAndFeel;
     // std::unique_ptr<Image>      background;
     std::unique_ptr<TextButton> bypassButton;
@@ -44,6 +45,7 @@ class LeslieMaxwellEditor : public AudioProcessorEditor, private Timer
     // APVTS
     // std::unique_ptr<AudioProcessorValueTreeState>                  &apvts;
     std::unique_ptr<AudioProcessorValueTreeState::SliderAttachment> vcoFreqAttachment;
+    std::unique_ptr<AudioProcessorValueTreeState::SliderAttachment> vcoDepthAttachment;
     std::unique_ptr<AudioProcessorValueTreeState::ButtonAttachment> bypassAttachment;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LeslieMaxwellEditor)

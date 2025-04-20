@@ -2,7 +2,7 @@
 # javiolonchelo@gmail.com
 
 cmake_minimum_required(VERSION 3.15)
-project(LeslieMaxwell VERSION 0.0.1 LANGUAGES C CXX)
+project(LeslieMaxwell VERSION 0.0.2 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 
@@ -97,6 +97,7 @@ target_sources(${PROJECT_NAME}
         ${SOURCE_PATH}/CustomLookAndFeel.h
         ${SOURCE_PATH}/PluginEditor.h
         ${SOURCE_PATH}/PluginProcessor.h
+        ${SOURCE_PATH}/FractionalRingBuffer.h
 )
 
 target_include_directories(${PROJECT_NAME}

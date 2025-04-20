@@ -7,6 +7,7 @@
 #include "PluginEditor.h"
 #include "juce_audio_utils/juce_audio_utils.h"
 #include "common.h"
+#include "FractionalRingBuffer.h"
 
 class LeslieMaxwellProcessor : public AudioProcessor
 #if JucePlugin_Enable_ARA
@@ -50,6 +51,10 @@ class LeslieMaxwellProcessor : public AudioProcessor
 
    private:
     static AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
+
+    FractionalRingBuffer<float> delayBuffer[2];
+    // VCO internal state variables
+    float vcoPhase_old[2] = {0.0f, 0.0f};
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LeslieMaxwellProcessor)
 };

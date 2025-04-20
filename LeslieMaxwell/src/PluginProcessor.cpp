@@ -8,7 +8,8 @@
 AudioProcessorValueTreeState::ParameterLayout LeslieMaxwellProcessor::createParameterLayout()
 {
     std::vector<std::unique_ptr<RangedAudioParameter>> params;
-    params.push_back(std::make_unique<AudioParameterFloat>(P_VCO_FREQ_ID, P_VCO_FREQ_NAME, 0.0f, 100.0f, 5.0f));
+    params.push_back(std::make_unique<AudioParameterFloat>(P_VCO_FREQ_ID, P_VCO_FREQ_NAME, NormalisableRange<float>(0.0f, MAX_VCO_FREQ, 0.0001f), 0.0f));
+    params.push_back(std::make_unique<AudioParameterFloat>(P_VCO_DEPTH_ID, P_VCO_DEPTH_NAME, NormalisableRange<float>(0.0f, MAX_VCO_DEPTH_MS, 0.0001f), 0.0f));
     params.push_back(std::make_unique<AudioParameterBool>(P_BYPASS_ID, P_BYPASS_NAME, true));
     // params.push_back(std::make_unique<AudioParameterFloat>(P_X_ID, P_X_NAME, 0.0f, 1.0f, 0.5f));
     // params.push_back(std::make_unique<AudioParameterFloat>(P_Y_ID, P_Y_NAME, 0.0f, 1.0f, 0.5f));
@@ -75,7 +76,7 @@ void LeslieMaxwellProcessor::changeProgramName(int index, const String &newName)
 
 void LeslieMaxwellProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
-    // gain.reset(sampleRate, 0.02);
+    for (int channel = 0; channel < 2; ++channel) { delayBuffer[channel].prepare(static_cast<int>(2.0f * MAX_VCO_DEPTH_MS * sampleRate / 1000.0f)); }
 }
 
 void LeslieMaxwellProcessor::releaseResources() {}
@@ -99,20 +100,34 @@ bool LeslieMaxwellProcessor::isBusesLayoutSupported(const BusesLayout &layouts) 
 
 void LeslieMaxwellProcessor::processBlock(AudioBuffer<float> &buffer, MidiBuffer &midiMessages)
 {
+    setLatencySamples(2 * MAX_VCO_DEPTH_MS);
+
     ScopedNoDenormals noDenormals;
     const auto        numIns  = getTotalNumInputChannels();
     const auto        numOuts = getTotalNumOutputChannels();
     const auto        N       = buffer.getNumSamples();
 
+    // VCO parameters and state
+    const float vcoFreq  = apvts->getRawParameterValue(P_VCO_FREQ_ID)->load();
+    const float vcoDepth = apvts->getRawParameterValue(P_VCO_DEPTH_ID)->load();
+
     for (int channel = 0; channel < numIns; ++channel)
     {
         if (apvts->getParameter(P_BYPASS_ID)->getValue() == true)
         {
-            auto *y = buffer.getWritePointer(channel);
+            auto *y        = buffer.getWritePointer(channel);
+            float vcoPhase = 0.0f;
             for (int n = 0; n < N; ++n)
             {
-                // y[n] *= Decibels::decibelsToGain(gain.getNextValue(), -120.0f);
+                delayBuffer[channel].push(y[n]);
+                vcoPhase = vcoPhase_old[channel] + MathConstants<float>::twoPi * vcoFreq * static_cast<float>(n);
+
+                const float vcoOut = vcoDepth * (1 + std::sin(vcoPhase));
+                y[n]               = delayBuffer[channel].get(vcoOut);
+                // const float vcoOut = vcoDepth * (1 + std::sin(vcoPhase));
+                // y[n] *= vcoOut;
             }
+            vcoPhase_old[channel] = vcoPhase;
         }
     }
 }
