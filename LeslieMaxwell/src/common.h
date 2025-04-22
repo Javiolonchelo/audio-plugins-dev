@@ -30,7 +30,8 @@ static constexpr float INITIAL_MULTIPLIER = 0.5f;
 static constexpr int DOUBLE_CLICK_TIMEOUT = 300;  // ms
 
 // DSP
-static constexpr double MAX_VCO_DEPTH_MS = 1000.0f;  // ms
-static constexpr float  MAX_VCO_FREQ     = 0.1f;     // Hz
+static constexpr double MAX_VCO_DEPTH = 10.0f;   // ms
+static constexpr float  MAX_VCO_FREQ  = 200.0f;  // Hz
+static constexpr float  RAMP_LENGTH   = 0.02f;   // s
 
 #endif  // COMMON_H

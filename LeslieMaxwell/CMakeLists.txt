@@ -2,7 +2,7 @@
 # javiolonchelo@gmail.com
 
 cmake_minimum_required(VERSION 3.15)
-project(LeslieMaxwell VERSION 0.0.2 LANGUAGES C CXX)
+project(LeslieMaxwell VERSION 0.0.3 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 

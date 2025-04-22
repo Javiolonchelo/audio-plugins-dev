@@ -27,6 +27,7 @@ class LeslieMaxwellProcessor : public AudioProcessor
 #endif
 
     void processBlock(AudioBuffer<float> &, MidiBuffer &) override;
+    void processBlockBypassed(AudioBuffer<float> &buffer, MidiBuffer &midiMessages) override;
 
     AudioProcessorEditor *createEditor() override;
     bool                  hasEditor() const override;
@@ -53,8 +54,12 @@ class LeslieMaxwellProcessor : public AudioProcessor
     static AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
     FractionalRingBuffer<float> delayBuffer[2];
+
     // VCO internal state variables
-    float vcoPhase_old[2] = {0.0f, 0.0f};
+    float vcoPhase[2] = {0.0f, 0.0f};
+
+    std::unique_ptr<SmoothedValue<float, ValueSmoothingTypes::Linear>> vcoFreq[2];
+    std::unique_ptr<SmoothedValue<float, ValueSmoothingTypes::Linear>> vcoDepth[2];
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LeslieMaxwellProcessor)
 };
