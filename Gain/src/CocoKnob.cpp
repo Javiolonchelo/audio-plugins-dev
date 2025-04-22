@@ -30,7 +30,15 @@ void CocoKnob::mouseDrag(const MouseEvent& event)
     else { Slider::mouseDrag(event); }
 }
 
-void CocoKnob::mouseDown(const MouseEvent& event) { Slider::mouseDown(event); }
+void CocoKnob::mouseDown(const MouseEvent& event)
+{
+    if (event.mods.isRightButtonDown())
+    {
+        const auto p = getParentComponent();
+        p->mouseDown(event.getEventRelativeTo(p));
+    }
+    else { Slider::mouseDown(event); }
+}
 
 void CocoKnob::mouseUp(const MouseEvent& event)
 {

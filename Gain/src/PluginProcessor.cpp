@@ -10,8 +10,9 @@ AudioProcessorValueTreeState::ParameterLayout GainAudioProcessor::createParamete
     std::vector<std::unique_ptr<RangedAudioParameter>> params;
     params.push_back(std::make_unique<AudioParameterFloat>(P_GAIN_ID, P_GAIN_NAME, -60.0f, 60.0f, 0.0f));
     params.push_back(std::make_unique<AudioParameterBool>(P_BYPASS_ID, P_BYPASS_NAME, true));
-    // params.push_back(std::make_unique<AudioParameterFloat>(P_X_ID, P_X_NAME, 0.0f, 1.0f, 0.5f));
-    // params.push_back(std::make_unique<AudioParameterFloat>(P_Y_ID, P_Y_NAME, 0.0f, 1.0f, 0.5f));
+    params.push_back(std::make_unique<AudioParameterFloat>(P_X_ID, P_X_NAME, NormalisableRange<float>(-1.0f, 2.0f, 0.001f), 0.5f));
+    params.push_back(std::make_unique<AudioParameterFloat>(P_Y_ID, P_Y_NAME, NormalisableRange<float>(-1.0f, 2.0f, 0.001f), 0.5f));
+    params.push_back(std::make_unique<AudioParameterFloat>(P_SIZE_ID, P_SIZE_NAME, NormalisableRange<float>(0.0f, 4.0f, 0.01f), 0.3f));
     return {params.begin(), params.end()};
 }
 

@@ -26,10 +26,11 @@ class GainAudioProcessorEditor : public AudioProcessorEditor, private Timer
     void mouseDoubleClick(const MouseEvent &) override;
     void mouseDrag(const MouseEvent &) override;
     void mouseUp(const MouseEvent &) override;
+    void mouseDown(const MouseEvent &event) override;
     void mouseWheelMove(const MouseEvent &, const MouseWheelDetails &) override;
 
     // Custom functions
-    void repaintMouseChanges() const;
+    void repaintMouseChanges();
 
     // Member variables
     GainAudioProcessor         &audioProcessor;
@@ -39,10 +40,8 @@ class GainAudioProcessorEditor : public AudioProcessorEditor, private Timer
     std::unique_ptr<TextButton> bypassButton;
     std::unique_ptr<Label>      title;
 
-    float        sizeMultiplier     = INITIAL_MULTIPLIER;
-    Point<int>   offset             = {0, 0};
-    Point<int>   lastCenter         = {STARTUP_CENTER, STARTUP_CENTER};
-    Point<float> lastCenterRelative = {0.5f, 0.5f};
+    Point<int>   lastCenter             = {STARTUP_CENTER, STARTUP_CENTER};
+    Point<float> posWhenStartedDragging = {0.0f, 0.0f};
 
     // APVTS
     // std::unique_ptr<AudioProcessorValueTreeState>                  &apvts;

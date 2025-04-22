@@ -78,13 +78,11 @@ void GainAudioProcessorEditor::paint(juce::Graphics &g)
     title->setBounds(0, 0, getWidth(), newTitleHeight);
 
     g.drawImageWithin(*background, 0, newTitleHeight, getWidth(), getHeight() - newTitleHeight, RectanglePlacement::stretchToFit, false);
+
     repaintMouseChanges();
 }
 
-void GainAudioProcessorEditor::resized()
-{
-    lastCenter = {static_cast<int>(lastCenterRelative.x * getWidth()), static_cast<int>(lastCenterRelative.y * getHeight())};
-}
+void GainAudioProcessorEditor::resized() {}
 
 // MOUSE CALLBACKS /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -92,16 +90,15 @@ void GainAudioProcessorEditor::mouseDoubleClick(const MouseEvent &event)
 {
     if (event.mods.isRightButtonDown())
     {
-        const auto w = static_cast<float>(getWidth());
-        const auto h = static_cast<float>(getHeight());
+        const auto p_size = audioProcessor.apvts->getParameter(P_SIZE_ID);
+        const auto p_x    = audioProcessor.apvts->getParameter(P_X_ID);
+        const auto p_y    = audioProcessor.apvts->getParameter(P_Y_ID);
 
-        // Reset size and position
-        sizeMultiplier     = INITIAL_MULTIPLIER;
-        lastCenter         = event.getMouseDownPosition();
-        lastCenterRelative = {event.getMouseDownPosition().x / w, event.getMouseDownPosition().y / h};
-        offset             = {0, 0};
+        p_size->setValueNotifyingHost(p_size->convertTo0to1(INITIAL_MULTIPLIER));
 
-        // repaintMouseChanges();
+        const auto pos = event.getMouseDownPosition();
+        p_x->setValueNotifyingHost(p_x->convertTo0to1(pos.x / static_cast<float>(getWidth())));
+        p_y->setValueNotifyingHost(p_y->convertTo0to1(pos.y / static_cast<float>(getHeight())));
     }
 }
 
@@ -109,47 +106,58 @@ void GainAudioProcessorEditor::mouseDrag(const MouseEvent &event)
 {
     if (event.mods.isRightButtonDown())
     {
-        offset = event.getOffsetFromDragStart();
-        DBG("Drag offset: " << offset.x << ", " << offset.y);
-        // repaintMouseChanges();
+        const auto p_x = audioProcessor.apvts->getParameter(P_X_ID);
+        const auto p_y = audioProcessor.apvts->getParameter(P_Y_ID);
+
+        const auto offset = event.getOffsetFromDragStart();
+
+        const float newX = p_x->convertTo0to1(posWhenStartedDragging.x + static_cast<float>(offset.x) / static_cast<float>(getWidth()));
+        const float newY = p_y->convertTo0to1(posWhenStartedDragging.y + static_cast<float>(offset.y) / static_cast<float>(getHeight()));
+        p_x->setValueNotifyingHost(newX);
+        p_y->setValueNotifyingHost(newY);
     }
 }
 
-void GainAudioProcessorEditor::mouseUp(const MouseEvent &event)
+void GainAudioProcessorEditor::mouseUp(const MouseEvent &event) { posWhenStartedDragging = {0.0f, 0.0f}; }
+void GainAudioProcessorEditor::mouseDown(const MouseEvent &event)
 {
     if (event.mods.isRightButtonDown())
     {
-        const auto w = static_cast<float>(getWidth());
-        const auto h = static_cast<float>(getHeight());
-        lastCenter += offset;
-        lastCenterRelative = {lastCenter.x / w, lastCenter.y / h};
-        offset             = {0, 0};
-        DBG("lastCenter: " << lastCenter.x << ", " << lastCenter.y);
-        DBG("lastCenterRelative: " << lastCenterRelative.x << ", " << lastCenterRelative.y);
-        // repaintMouseChanges();
+        const auto p_x = audioProcessor.apvts->getParameter(P_X_ID);
+        const auto p_y = audioProcessor.apvts->getParameter(P_Y_ID);
+
+        posWhenStartedDragging.x = p_x->convertFrom0to1(p_x->getValue());
+        posWhenStartedDragging.y = p_y->convertFrom0to1(p_y->getValue());
     }
+    AudioProcessorEditor::mouseDown(event);
 }
 
 void GainAudioProcessorEditor::mouseWheelMove(const MouseEvent &, const MouseWheelDetails &mouse_wheel_details)
 {
-    sizeMultiplier += mouse_wheel_details.deltaY * 0.1f;
-    sizeMultiplier = jlimit(0.0f, 1000.0f, sizeMultiplier);
+    const auto p_size         = audioProcessor.apvts->getParameter(P_SIZE_ID);
+    const auto sizeMultiplier = jlimit<float>(0.0f, 1000.0f, p_size->convertFrom0to1(p_size->getValue()) + 0.2f * mouse_wheel_details.deltaY);
+    p_size->setValueNotifyingHost(p_size->convertTo0to1(sizeMultiplier));
     DBG("sizeMultiplier: " << sizeMultiplier);
-    // repaintMouseChanges();
 }
 
 // CUSTOM FUNCTIONS ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-void GainAudioProcessorEditor::repaintMouseChanges() const
+void GainAudioProcessorEditor::repaintMouseChanges()
 {
-    // if (knob == nullptr) return;
+    const auto p_size = audioProcessor.apvts->getParameter(P_SIZE_ID);
+    const auto p_x    = audioProcessor.apvts->getParameter(P_X_ID);
+    const auto p_y    = audioProcessor.apvts->getParameter(P_Y_ID);
 
-    const auto newWidth  = jmax(sizeMultiplier * getWidth(), 0.0f);
-    const auto newHeight = jmax(sizeMultiplier * getHeight(), 0.0f);
+    const auto size     = p_size->convertFrom0to1(p_size->getValue());
+    const auto center_x = p_x->convertFrom0to1(p_x->getValue());
+    const auto center_y = p_y->convertFrom0to1(p_y->getValue());
+
+    const float newWidth  = jmax(size * getWidth(), 0.0f);
+    const float newHeight = jmax(size * getHeight(), 0.0f);
     jassert(newWidth >= 0 && newHeight >= 0);
 
-    const auto x = lastCenter.x + offset.x - newWidth / 2;
-    const auto y = lastCenter.y + offset.y - newHeight / 2;
+    const float x = center_x * getWidth() - newWidth / 2;
+    const float y = center_y * getHeight() - newHeight / 2;
 
     knob->setBounds(x, y, newWidth, newHeight);
 }
