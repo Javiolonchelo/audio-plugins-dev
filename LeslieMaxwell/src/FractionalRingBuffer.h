@@ -4,9 +4,13 @@
 
 #ifndef FRACTIONALRINGBUFFER_H
 #define FRACTIONALRINGBUFFER_H
+#include <cassert>
 #include <memory>
-#include <stdexcept>
 
+/**
+ *
+ * @tparam T Type of the samples stored in the buffer.
+ */
 template <typename T>
 class FractionalRingBuffer
 {
@@ -14,10 +18,13 @@ class FractionalRingBuffer
     FractionalRingBuffer()  = default;
     ~FractionalRingBuffer() = default;
 
-    // method to prepare the buffer
+    /**
+     * Prepares the buffer for use. This sets the size of the buffer, clears it, and initializes the index of the write pointer.
+     * @param size Size of the buffer in samples.
+     */
     void prepare(const int size)
     {
-        if (size <= 0) { throw std::invalid_argument("The size of the ring buffer must be greater than 0."); }
+        assert(size > 0);
 
         buffer.reset(new T[size]);
         bufferSize = size;
@@ -25,44 +32,70 @@ class FractionalRingBuffer
         clear();
     }
 
+    /**
+     * Inserts a value into the buffer at the current position and moves the write pointer forward one position.
+     * @param value Value to be inserted.
+     */
     void push(const T& value)
     {
-        if (buffer == nullptr) { throw std::runtime_error("Buffer not initialized. Call prepare() first."); }
+        assert(buffer != nullptr);
 
         buffer[index] = value;
         index         = (index + 1) % bufferSize;
     }
 
-    // T get(const int p)
-    // {
-    //     if (buffer == nullptr) { throw std::runtime_error("Buffer not initialized. Call prepare() first."); }
-    //     if (p <= 0 || p >= bufferSize) { throw std::out_of_range("Position out of range."); }
-    //
-    //     const int idx = (index - p + bufferSize) % bufferSize;
-    //     return buffer[idx];
-    // }
-
-    T get(const float p)
+    /**
+     * Retrieves a value from the buffer at a specified position.
+     * This emulates the behavior of a delay line with the following transfer function: \f[ H(z) = z^{-p} \f]
+     *
+     * @param pos Position relative to the current index.
+     * @return Value at the specified position.
+     */
+    T get(const int pos)
     {
-        if (buffer == nullptr) { throw std::runtime_error("Buffer not initialized. Call prepare() first."); }
-        if (p < 0.0f || p >= static_cast<float>(bufferSize)) { throw std::out_of_range("Position out of range."); }
+        assert(buffer != nullptr);
+        assert(pos > 0 && pos < bufferSize);
+
+        const int idx = (index - pos + bufferSize) % bufferSize;
+        return buffer[idx];
+    }
+
+    /**
+     * Retrieves a value which is a result of linear interpolation between two samples in the buffer. The decimal part of the position is used to determine
+     * the interpolation weight.
+     * This emulates the behavior of a fractional delay line with the following transfer function: \f[ H(z) = z^{-\left(M + \text{frac} \right)} \f]
+     * @param pos Fractional position relative to the current index.
+     * @return Linear interpolated value at the specified position.
+     * @see std::lerp
+     */
+    T get(const float pos)
+    {
+        assert(buffer != nullptr);
+        assert(pos >= 0.0f && pos < static_cast<float>(bufferSize));
 
         // Get the integer and fractional parts
-        const int   intPart  = static_cast<int>(p);
-        const float fracPart = p - static_cast<float>(intPart);
+        const int   intPart  = static_cast<int>(pos);
+        const float fracPart = pos - static_cast<float>(intPart);
 
         // Linear interpolation between the two nearest samples
-        const int idx1 = (index - intPart - 1 + bufferSize) % bufferSize;
-        const int idx2 = (index - intPart - 2 + bufferSize) % bufferSize;
+        const int idx1 = (index - intPart + bufferSize) % bufferSize;
+        const int idx2 = (index - intPart - 1 + bufferSize) % bufferSize;
         return std::lerp(buffer[idx1], buffer[idx2], fracPart);
     }
 
+    /**
+     * Get the size of the buffer.
+     * @return Size of the buffer.
+     */
+    [[nodiscard]] int getSize() const { return bufferSize; }
+
+    /**
+     * Clears the buffer by setting all values to their default state.
+     */
     void clear()
     {
-        if (buffer == nullptr) { throw std::runtime_error("Buffer not initialized. Call prepare() first."); }
-
+        assert(buffer != nullptr);
         for (int i = 0; i < bufferSize; ++i) { buffer[i] = T(); }
-        index = 0;
     }
 
    private:
