@@ -3,7 +3,7 @@
 # javiolonchelo@gmail.com
 
 cmake_minimum_required(VERSION 3.15)
-project(Gain VERSION 0.2.0 LANGUAGES C CXX)
+project(Gain VERSION 0.2.1 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 
@@ -104,11 +104,16 @@ target_sources(${PROJECT_NAME}
         ${SOURCE_PATH}/PluginEditor.cpp
         ${SOURCE_PATH}/PluginProcessor.cpp
         ${SOURCE_PATH}/CocoKnob.cpp
+        ${SOURCE_PATH}/TitleBox.cpp
+        ${SOURCE_PATH}/MyCanvas.cpp
+
         # .h
         ${SOURCE_PATH}/CustomLookAndFeel.h
         ${SOURCE_PATH}/PluginEditor.h
         ${SOURCE_PATH}/PluginProcessor.h
         ${SOURCE_PATH}/CocoKnob.h
+        ${SOURCE_PATH}/TitleBox.h
+        ${SOURCE_PATH}/MyCanvas.h
 )
 
 target_include_directories(${PROJECT_NAME}

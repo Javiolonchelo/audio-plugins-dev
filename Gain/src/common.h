@@ -32,5 +32,6 @@ static constexpr float INITIAL_MULTIPLIER = 0.5f;
 
 // UX
 static constexpr int DOUBLE_CLICK_TIMEOUT = 300;  // ms
+static constexpr int FPS                  = 1;    // Hz
 
 #endif  // COMMON_H

@@ -6,15 +6,16 @@
 
 #include <PluginProcessor.h>
 
-void GainAudioProcessorEditor::timerCallback() { repaint(); }
-
 GainAudioProcessorEditor::GainAudioProcessorEditor(GainAudioProcessor &p) : AudioProcessorEditor(&p), audioProcessor(p)
 {
     // General settings and UI
     MouseEvent::setDoubleClickTimeout(DOUBLE_CLICK_TIMEOUT);
     LookAndFeel_V4::setDefaultLookAndFeel(&customLookAndFeel);
-    background = std::make_unique<Image>(ImageCache::getFromMemory(BinaryData::background_jpg, BinaryData::background_jpgSize));
-    jassert(background != nullptr && background->isValid());
+
+    // Custom canvas
+    myCanvas = std::make_unique<MyCanvas>();
+    myCanvas->setSize(STARTUP_SIZE, STARTUP_SIZE + TITLE_HEIGHT);
+    addAndMakeVisible(*myCanvas);
 
     // Layout management
     setResizable(true, false);
@@ -25,8 +26,7 @@ GainAudioProcessorEditor::GainAudioProcessorEditor(GainAudioProcessor &p) : Audi
     // Knob settings
     knob = std::make_unique<CocoKnob>();
     knob->setLookAndFeel(&customLookAndFeel);
-
-    addAndMakeVisible(*knob);
+    myCanvas->addAndMakeVisible(*knob);
 
     // Bypass button settings
     bypassButton = std::make_unique<TextButton>();
@@ -37,20 +37,19 @@ GainAudioProcessorEditor::GainAudioProcessorEditor(GainAudioProcessor &p) : Audi
     // addAndMakeVisible(*bypassButton);
 
     // Title
-    title = std::make_unique<Label>();
-    title->setText("French Coconut Gain:  0.0 dB", dontSendNotification);
-    title->setJustificationType(Justification::centred);
-    title->setBorderSize(BorderSize<int>(10));
-    const FontOptions opts(Font::getDefaultSerifFontName(), 20.0f, Font::bold);
-    title->setFont(opts);
-    addAndMakeVisible(*title);
+    titleComponent = std::make_unique<TitleBox>(*audioProcessor.apvts);
+    titleComponent->setOpaque(true);
+    titleComponent->setBounds(0, 0, getWidth(), TITLE_HEIGHT);
+    myCanvas->addAndMakeVisible(*titleComponent);
 
     // Attachments
     knobAttachment   = std::make_unique<AudioProcessorValueTreeState::SliderAttachment>(*p.apvts, P_GAIN_ID, *knob);
     bypassAttachment = std::make_unique<AudioProcessorValueTreeState::ButtonAttachment>(*p.apvts, P_BYPASS_ID, *bypassButton);
-
-    // Timer
-    startTimerHz(60);  // 60 FPS
+    knob->addListener(titleComponent.get());
+    audioProcessor.apvts->addParameterListener(P_GAIN_ID, this);
+    audioProcessor.apvts->addParameterListener(P_SIZE_ID, this);
+    audioProcessor.apvts->addParameterListener(P_X_ID, this);
+    audioProcessor.apvts->addParameterListener(P_Y_ID, this);
 }
 
 GainAudioProcessorEditor::~GainAudioProcessorEditor()
@@ -61,28 +60,35 @@ GainAudioProcessorEditor::~GainAudioProcessorEditor()
 
 void GainAudioProcessorEditor::paint(juce::Graphics &g)
 {
-    const auto newTitleHeight = TITLE_HEIGHT * getHeight() / (STARTUP_SIZE + TITLE_HEIGHT);
-
-    const Rectangle<int> r(0, 0, getWidth(), getHeight());
-    g.setColour(Colours::black);
-    g.fillRect(r);
-
     // Title
-    const FontOptions opts(Font::getDefaultSerifFontName(), jmax(10.0f, newTitleHeight * 0.4f), Font::bold);
-    title->setFont(opts);
+    // const int titleHeight = titleComponent->getNewTitleHeight();
+    titleComponent->setBounds(0, 0, myCanvas->getWidth(), TITLE_HEIGHT);
 
-    // Pad the value with spaces at beginning of string until it reaches 6 characters
-    const String value(audioProcessor.apvts->getRawParameterValue(P_GAIN_ID)->load(), 1);
-    const String titleText = "French Coconut Gain: " + value.paddedLeft(' ', 5) + " dB";
-    title->setText(titleText, dontSendNotification);
-    title->setBounds(0, 0, getWidth(), newTitleHeight);
+    // Knob
+    const auto p_size = audioProcessor.apvts->getParameter(P_SIZE_ID);
+    const auto p_x    = audioProcessor.apvts->getParameter(P_X_ID);
+    const auto p_y    = audioProcessor.apvts->getParameter(P_Y_ID);
 
-    g.drawImageWithin(*background, 0, newTitleHeight, getWidth(), getHeight() - newTitleHeight, RectanglePlacement::stretchToFit, false);
+    const auto size     = p_size->convertFrom0to1(p_size->getValue());
+    const auto center_x = p_x->convertFrom0to1(p_x->getValue());
+    const auto center_y = p_y->convertFrom0to1(p_y->getValue());
 
-    repaintMouseChanges();
+    const float newWidth  = jmax(size * myCanvas->getWidth(), 0.0f);
+    const float newHeight = jmax(size * myCanvas->getHeight(), 0.0f);
+    jassert(newWidth >= 0 && newHeight >= 0);
+
+    const float x = center_x * myCanvas->getWidth() - newWidth / 2;
+    const float y = center_y * myCanvas->getHeight() - newHeight / 2;
+
+    knob->setBounds(x, y, newWidth, newHeight);
 }
 
-void GainAudioProcessorEditor::resized() {}
+void GainAudioProcessorEditor::resized()
+{
+    const auto area = getLocalBounds();
+    const auto sc   = static_cast<float>(area.getWidth()) / STARTUP_SIZE;
+    myCanvas->setTransform(AffineTransform::scale(sc));
+}
 
 // MOUSE CALLBACKS /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -99,9 +105,9 @@ void GainAudioProcessorEditor::mouseDoubleClick(const MouseEvent &event)
         const auto pos = event.getMouseDownPosition();
         p_x->setValueNotifyingHost(p_x->convertTo0to1(pos.x / static_cast<float>(getWidth())));
         p_y->setValueNotifyingHost(p_y->convertTo0to1(pos.y / static_cast<float>(getHeight())));
+        repaint();
     }
 }
-
 void GainAudioProcessorEditor::mouseDrag(const MouseEvent &event)
 {
     if (event.mods.isRightButtonDown())
@@ -115,10 +121,14 @@ void GainAudioProcessorEditor::mouseDrag(const MouseEvent &event)
         const float newY = p_y->convertTo0to1(posWhenStartedDragging.y + static_cast<float>(offset.y) / static_cast<float>(getHeight()));
         p_x->setValueNotifyingHost(newX);
         p_y->setValueNotifyingHost(newY);
+        repaint();
     }
 }
-
-void GainAudioProcessorEditor::mouseUp(const MouseEvent &event) { posWhenStartedDragging = {0.0f, 0.0f}; }
+void GainAudioProcessorEditor::mouseUp(const MouseEvent &event)
+{
+    posWhenStartedDragging = {0.0f, 0.0f};
+    repaint();
+}
 void GainAudioProcessorEditor::mouseDown(const MouseEvent &event)
 {
     if (event.mods.isRightButtonDown())
@@ -129,35 +139,13 @@ void GainAudioProcessorEditor::mouseDown(const MouseEvent &event)
         posWhenStartedDragging.x = p_x->convertFrom0to1(p_x->getValue());
         posWhenStartedDragging.y = p_y->convertFrom0to1(p_y->getValue());
     }
-    AudioProcessorEditor::mouseDown(event);
 }
-
 void GainAudioProcessorEditor::mouseWheelMove(const MouseEvent &, const MouseWheelDetails &mouse_wheel_details)
 {
     const auto p_size         = audioProcessor.apvts->getParameter(P_SIZE_ID);
     const auto sizeMultiplier = jlimit<float>(0.0f, 1000.0f, p_size->convertFrom0to1(p_size->getValue()) + 0.2f * mouse_wheel_details.deltaY);
     p_size->setValueNotifyingHost(p_size->convertTo0to1(sizeMultiplier));
     DBG("sizeMultiplier: " << sizeMultiplier);
+    repaint();
 }
-
-// CUSTOM FUNCTIONS ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-void GainAudioProcessorEditor::repaintMouseChanges()
-{
-    const auto p_size = audioProcessor.apvts->getParameter(P_SIZE_ID);
-    const auto p_x    = audioProcessor.apvts->getParameter(P_X_ID);
-    const auto p_y    = audioProcessor.apvts->getParameter(P_Y_ID);
-
-    const auto size     = p_size->convertFrom0to1(p_size->getValue());
-    const auto center_x = p_x->convertFrom0to1(p_x->getValue());
-    const auto center_y = p_y->convertFrom0to1(p_y->getValue());
-
-    const float newWidth  = jmax(size * getWidth(), 0.0f);
-    const float newHeight = jmax(size * getHeight(), 0.0f);
-    jassert(newWidth >= 0 && newHeight >= 0);
-
-    const float x = center_x * getWidth() - newWidth / 2;
-    const float y = center_y * getHeight() - newHeight / 2;
-
-    knob->setBounds(x, y, newWidth, newHeight);
-}
+void GainAudioProcessorEditor::parameterChanged(const String &parameterID, float newValue) { repaint(); }
