@@ -57,6 +57,8 @@ set(BUNDLE_ID com.dBobStudio.LeslieMaxwell)
 set(PLUGIN_CODE Lsmx)
 set(FORMATS AU VST3 Standalone)
 set(PLUGIN_FINAL_NAME "Leslie Maxwell")
+set(COMPANY_NAME "dBob Studio")
+set(PLUGIN_MANUFACTURER_CODE dBob)
 
 # Paths
 set(SOURCE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -77,15 +79,18 @@ juce_add_plugin(
         PLUGIN_MANUFACTURER_CODE ${PLUGIN_MANUFACTURER_CODE}
         PRODUCT_NAME ${PLUGIN_FINAL_NAME}
 )
-#
-#juce_add_binary_data(BinaryData
-#
-#        SOURCES
-#        # Images
-#
-#        # Fonts
-#        ${CMAKE_SOURCE_DIR}/assets/fonts/French_Fries.ttf
-#)
+
+# Collect all files under assets/ recursively and add them as binary data
+file(GLOB_RECURSE LESLIE_ASSET_FILES CONFIGURE_DEPENDS
+        "${CMAKE_SOURCE_DIR}/assets/render/*"
+)
+list(LENGTH LESLIE_ASSET_FILES LESLIE_ASSET_COUNT)
+message(STATUS "Found ${LESLIE_ASSET_COUNT} assets under ${CMAKE_SOURCE_DIR}/assets/")
+
+juce_add_binary_data(BinaryData
+        SOURCES
+        ${LESLIE_ASSET_FILES}
+)
 
 target_sources(${PROJECT_NAME}
         PRIVATE
@@ -114,8 +119,11 @@ target_compile_definitions(${PROJECT_NAME}
 )
 target_link_libraries(${PROJECT_NAME}
         PRIVATE
-        #        BinaryData
+        BinaryData
         juce::juce_audio_utils
+        juce::juce_opengl
+        juce::juce_gui_basics
+        juce::juce_gui_extra
         PUBLIC
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags

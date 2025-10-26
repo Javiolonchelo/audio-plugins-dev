@@ -12,7 +12,7 @@ you too!
   paper. [Click here](LeslieMaxwell/) to know more about this plugin.
 
 > [!NOTE]
-> Dingus the cat by alwayshasbean \[CC-BY\] via Poly Pizza
+> Dingus the cat by alwayshasbean [CC-BY] (https://creativecommons.org/licenses/by/3.0/) via Poly Pizza (https://poly.pizza/m/4dXgbKLHD9)
 
 ![Picture of Maxwell](https://media.tenor.com/qJRMLPlR3_8AAAAj/maxwell-cat.gif)
 

@@ -5,22 +5,87 @@
 #include "PluginEditor.h"
 
 #include <PluginProcessor.h>
+#include <juce_opengl/juce_opengl.h>
 
-void LeslieMaxwellEditor::timerCallback() { repaint(); }
+// void LeslieMaxwellEditor::timerCallback()
+// {
+//
+//     repaint();
+//
+// }
+void LeslieMaxwellEditor::newOpenGLContextCreated()
+{
+    for (int i = 0; names[i] != nullptr; ++i)
+    {
+        String name = names[i];
+
+        // Load only those matching our frame pattern
+        if (name.startsWith("maxwell") && name.endsWith("png"))
+        {
+            int dataSize = 0;
+            const void* dataPtr = BinaryData::getNamedResource(name.toRawUTF8(), dataSize);
+
+            jassert(dataPtr != nullptr);
+            Image         img = ImageFileFormat::loadFrom(dataPtr, dataSize);
+            auto tex = std::make_unique<OpenGLTexture>();
+            tex->loadImage(img);
+            frames.push_back(std::move(tex));
+        }
+    }
+}
+
+constexpr int   TOTAL_FRAMES = 201;
+constexpr float RATE         = 60.0f;
+
+void LeslieMaxwellEditor::renderOpenGL()
+{
+    const auto vcoFreqValue = audioProcessor.apvts->getRawParameterValue(P_VCO_DEPTH_ID)->load();
+    previousFrameIndex += vcoFreqValue * (TOTAL_FRAMES / RATE);
+    if (previousFrameIndex >= TOTAL_FRAMES)
+        previousFrameIndex -= TOTAL_FRAMES;
+    const auto currentFrame = static_cast<int>(previousFrameIndex);
+
+    gl::glViewport(0, 0, getWidth(), getHeight());
+    gl::glMatrixMode(gl::GL_PROJECTION);
+    gl::glLoadIdentity();
+    gl::glOrtho(0.0, getWidth(), getHeight(), 0.0, -1.0, 1.0);
+    gl::glMatrixMode(gl::GL_MODELVIEW);
+    gl::glLoadIdentity();
+
+    OpenGLHelpers::clear(Colours::black);
+    gl::glDisable(gl::GL_LIGHTING);
+    gl::glColor3f(1, 1, 1);
+    gl::glEnable(gl::GL_TEXTURE_2D); // make sure 2D texturing is enabled
+
+    frames[currentFrame]->bind();
+    const auto bounds = getLocalBounds().toFloat();
+
+    gl::glBegin(gl::GL_QUADS);
+    gl::glTexCoord2f(0.0f, 0.0f); gl::glVertex2f(bounds.getX(), bounds.getBottom());
+    gl::glTexCoord2f(1.0f, 0.0f); gl::glVertex2f(bounds.getRight(), bounds.getBottom());
+    gl::glTexCoord2f(1.0f, 1.0f); gl::glVertex2f(bounds.getRight(), bounds.getY());
+    gl::glTexCoord2f(0.0f, 1.0f); gl::glVertex2f(bounds.getX(), bounds.getY());
+    gl::glEnd();
+
+    frames[currentFrame]->unbind();
+}
+
+void LeslieMaxwellEditor::openGLContextClosing()
+{
+    frames.clear();
+}
 
 LeslieMaxwellEditor::LeslieMaxwellEditor(LeslieMaxwellProcessor &p) : AudioProcessorEditor(&p), audioProcessor(p)
 {
     // General settings and UI
     MouseEvent::setDoubleClickTimeout(DOUBLE_CLICK_TIMEOUT);
     // LookAndFeel_V4::setDefaultLookAndFeel(&customLookAndFeel);
-    // background = std::make_unique<Image>(ImageCache::getFromMemory(BinaryData::background_jpg, BinaryData::background_jpgSize));
-    // jassert(background != nullptr && background->isValid());
 
     // Layout management
     setResizable(true, false);
-    setResizeLimits(MIN_SIZE, MIN_SIZE, MAX_SIZE, MAX_SIZE);
-    setSize(STARTUP_SIZE, STARTUP_SIZE + TITLE_HEIGHT);
-    getConstrainer()->setFixedAspectRatio(static_cast<float>(STARTUP_SIZE) / (STARTUP_SIZE + TITLE_HEIGHT));
+    // setResizeLimits(MIN_SIZE, MIN_SIZE, MAX_SIZE, MAX_SIZE);
+    setSize(1440, 810);
+    // getConstrainer()->setFixedAspectRatio(static_cast<float>(STARTUP_SIZE) / (STARTUP_SIZE + TITLE_HEIGHT));
 
     // Slider settings
     vcoFreqSlider  = std::make_unique<Slider>();
@@ -28,45 +93,47 @@ LeslieMaxwellEditor::LeslieMaxwellEditor(LeslieMaxwellProcessor &p) : AudioProce
     addAndMakeVisible(*vcoFreqSlider);
     addAndMakeVisible(*vcoDepthSlider);
 
-    // Bypass button settings
-    bypassButton = std::make_unique<TextButton>();
-    bypassButton->setBounds(0, TITLE_HEIGHT, 100, 100);
-    bypassButton->setButtonText("Bypass");
-    bypassButton->setClickingTogglesState(true);
-    bypassButton->setToggleable(true);
-    // addAndMakeVisible(*bypassButton);
-
     // Attachments
     vcoFreqAttachment  = std::make_unique<AudioProcessorValueTreeState::SliderAttachment>(*p.apvts, P_VCO_FREQ_ID, *vcoFreqSlider);
     vcoDepthAttachment = std::make_unique<AudioProcessorValueTreeState::SliderAttachment>(*p.apvts, P_VCO_DEPTH_ID, *vcoDepthSlider);
-    bypassAttachment   = std::make_unique<AudioProcessorValueTreeState::ButtonAttachment>(*p.apvts, P_BYPASS_ID, *bypassButton);
 
-    // Timer
-    startTimerHz(60);  // 60 FPS
+    startTimerHz(RATE);
+
+    openGLContext.setRenderer(this);
+    openGLContext.attachTo(*this);
+    openGLContext.setContinuousRepainting(false);
+    openGLContext.setComponentPaintingEnabled(true);
+
+    resized();
 }
 
 LeslieMaxwellEditor::~LeslieMaxwellEditor()
 {
     LookAndFeel_V4::setDefaultLookAndFeel(nullptr);
+    openGLContext.detach();
     // knob->setLookAndFeel(nullptr);
 }
 
-void LeslieMaxwellEditor::paint(juce::Graphics &g)
+void LeslieMaxwellEditor::paint(Graphics &)
 {
-    const auto newTitleHeight = TITLE_HEIGHT * getHeight() / (STARTUP_SIZE + TITLE_HEIGHT);
+    // Calculate title height using float math and convert to int to avoid narrowing warnings
+    // g.fillAll(Colours::black);
+    // openGLContext.triggerRepaint();
 
-    const Rectangle<int> r(0, 0, getWidth(), getHeight());
-    g.setColour(Colours::black);
-    g.fillRect(r);
-
-    vcoFreqSlider->setBounds(0, newTitleHeight, getWidth(), newTitleHeight);
-    vcoDepthSlider->setBounds(0, 2 * newTitleHeight, getWidth(), newTitleHeight);
+    // Note: layout is handled in resized(); keep paint minimal.
     // g.drawImageWithin(*background, 0, newTitleHeight, getWidth(), getHeight() - newTitleHeight, RectanglePlacement::stretchToFit, false);
 }
 
 void LeslieMaxwellEditor::resized()
 {
-    lastCenter = {static_cast<int>(lastCenterRelative.x * getWidth()), static_cast<int>(lastCenterRelative.y * getHeight())};
+    const auto height = 100;
+    // Layout sliders at the top, then the OpenGL demo occupies the remaining area.
+    if (vcoFreqSlider)  vcoFreqSlider->setBounds(0, 0, getWidth(), height);
+    if (vcoDepthSlider) vcoDepthSlider->setBounds(0, height, getWidth(), height);
+}
+void LeslieMaxwellEditor::timerCallback()
+{
+    openGLContext.triggerRepaint();
 }
 
 // MOUSE CALLBACKS /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

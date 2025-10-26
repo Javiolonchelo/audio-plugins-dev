@@ -4,21 +4,26 @@
 
 #pragma once
 
+#include "juce_opengl/juce_opengl.h"
 #include "common.h"
 // #include "CustomLookAndFeel.h"
 #include "PluginProcessor.h"
+#include "BinaryData.h"
 
-class LeslieMaxwellEditor : public AudioProcessorEditor, private Timer
+class LeslieMaxwellEditor : public AudioProcessorEditor, private Timer, private OpenGLRenderer
 {
    public:
-    // Timer
-    void timerCallback() override;
-
-    // Basic
     explicit LeslieMaxwellEditor(LeslieMaxwellProcessor &);
     ~LeslieMaxwellEditor() override;
     void paint(Graphics &) override;
     void resized() override;
+    // void timerCallback() override;
+
+    void timerCallback() override;
+
+    void newOpenGLContextCreated() override;
+    void renderOpenGL() override;
+    void openGLContextClosing() override;
 
    private:
     // Mouse callbacks
@@ -27,7 +32,7 @@ class LeslieMaxwellEditor : public AudioProcessorEditor, private Timer
     // void mouseUp(const MouseEvent &) override;
     // void mouseWheelMove(const MouseEvent &, const MouseWheelDetails &) override;
 
-    // Custom functions
+    float previousFrameIndex = 0.0f;
 
     // Member variables
     LeslieMaxwellProcessor &audioProcessor;
@@ -35,7 +40,13 @@ class LeslieMaxwellEditor : public AudioProcessorEditor, private Timer
     std::unique_ptr<Slider> vcoDepthSlider;
     // CustomLookAndFeel           customLookAndFeel;
     // std::unique_ptr<Image>      background;
-    std::unique_ptr<TextButton> bypassButton;
+    // std::unique_ptr<TextButton> bypassButton;
+
+    // Frames
+    const char* const* names = BinaryData::namedResourceList;
+
+    OpenGLContext openGLContext;
+    std::vector<std::unique_ptr<OpenGLTexture>> frames;
 
     float        sizeMultiplier     = INITIAL_MULTIPLIER;
     Point<int>   offset             = {0, 0};
@@ -46,7 +57,7 @@ class LeslieMaxwellEditor : public AudioProcessorEditor, private Timer
     // std::unique_ptr<AudioProcessorValueTreeState>                  &apvts;
     std::unique_ptr<AudioProcessorValueTreeState::SliderAttachment> vcoFreqAttachment;
     std::unique_ptr<AudioProcessorValueTreeState::SliderAttachment> vcoDepthAttachment;
-    std::unique_ptr<AudioProcessorValueTreeState::ButtonAttachment> bypassAttachment;
+    // std::unique_ptr<AudioProcessorValueTreeState::ButtonAttachment> bypassAttachment;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LeslieMaxwellEditor)
 };
