@@ -19,6 +19,7 @@ static const String P_VCO_DEPTH_NAME = "VCO Depth";
 static const String P_BYPASS_NAME    = "Bypass";
 
 // UI
+static constexpr int   NUM_FRAMES         = 201;
 static constexpr int   STARTUP_SIZE       = 500;    // px
 static constexpr int   STARTUP_CENTER     = 350;    // px
 static constexpr int   MIN_SIZE           = 250;    // px

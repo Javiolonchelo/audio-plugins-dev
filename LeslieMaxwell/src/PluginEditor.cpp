@@ -13,17 +13,19 @@
 //     repaint();
 //
 // }
+
 void LeslieMaxwellEditor::newOpenGLContextCreated()
 {
-    for (int i = 0; names[i] != nullptr; ++i)
+    for (int i = 0; i < NUM_FRAMES; ++i)
     {
-        String name = names[i];
+        String name { names[i] };
 
         // Load only those matching our frame pattern
         if (name.startsWith("maxwell") && name.endsWith("png"))
         {
             int dataSize = 0;
-            const void* dataPtr = BinaryData::getNamedResource(name.toRawUTF8(), dataSize);
+            const String binaryDataName { name.replaceCharacters(".", "_")};
+            const void* dataPtr = BinaryData::getNamedResource(binaryDataName.toRawUTF8(), dataSize);
 
             jassert(dataPtr != nullptr);
             Image         img = ImageFileFormat::loadFrom(dataPtr, dataSize);
@@ -34,18 +36,22 @@ void LeslieMaxwellEditor::newOpenGLContextCreated()
     }
 }
 
-constexpr int   TOTAL_FRAMES = 201;
 constexpr float RATE         = 60.0f;
 
 void LeslieMaxwellEditor::renderOpenGL()
 {
     const auto vcoFreqValue = audioProcessor.apvts->getRawParameterValue(P_VCO_DEPTH_ID)->load();
-    previousFrameIndex += vcoFreqValue * (TOTAL_FRAMES / RATE);
-    if (previousFrameIndex >= TOTAL_FRAMES)
-        previousFrameIndex -= TOTAL_FRAMES;
+    previousFrameIndex += vcoFreqValue * (NUM_FRAMES / RATE);
+    if (previousFrameIndex >= NUM_FRAMES) {
+        previousFrameIndex -= NUM_FRAMES;
+    }
     const auto currentFrame = static_cast<int>(previousFrameIndex);
 
-    gl::glViewport(0, 0, getWidth(), getHeight());
+    // Scale factor of display on mac might affect the getWidth
+    Point<int> pluginWindowTopLeft = getScreenBounds().getTopLeft();
+    const double scale = Desktop::getInstance().getDisplays().getDisplayForPoint(pluginWindowTopLeft)->scale;
+
+    gl::glViewport(0, 0,  scale * getWidth(), scale * getHeight());
     gl::glMatrixMode(gl::GL_PROJECTION);
     gl::glLoadIdentity();
     gl::glOrtho(0.0, getWidth(), getHeight(), 0.0, -1.0, 1.0);
@@ -55,7 +61,7 @@ void LeslieMaxwellEditor::renderOpenGL()
     OpenGLHelpers::clear(Colours::black);
     gl::glDisable(gl::GL_LIGHTING);
     gl::glColor3f(1, 1, 1);
-    gl::glEnable(gl::GL_TEXTURE_2D); // make sure 2D texturing is enabled
+    gl::glEnable(gl::GL_TEXTURE_2D);
 
     frames[currentFrame]->bind();
     const auto bounds = getLocalBounds().toFloat();
