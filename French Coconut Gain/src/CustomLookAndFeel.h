@@ -1,4 +1,4 @@
-// dBob Studio 2025
+// dBob Studio 2026
 // Javier Rodrigo López
 // javiolonchelo@gmail.com
 
@@ -22,8 +22,9 @@ class CustomLookAndFeel final : public LookAndFeel_V4
 
     // Fonts
     Typeface::Ptr getTypefaceForFont(const Font &) override;
+    Font getCustomFont(float height) const;
 
    private:
+    Typeface::Ptr          customTypeface;
     std::unique_ptr<Image> coco;
-    std::unique_ptr<Image> background;
 };

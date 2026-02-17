@@ -1,26 +1,36 @@
-// dBob Studio 2025
+// dBob Studio 2026
 // Javier Rodrigo López
 // javiolonchelo@gmail.com
 
 #pragma once
 
-#include "common.h"
 #include "CocoKnob.h"
 #include "CustomLookAndFeel.h"
+#include "MyCanvas.h"
 #include "PluginProcessor.h"
 #include "TitleBox.h"
-#include "MyCanvas.h"
+#include "common.h"
 
-class GainAudioProcessorEditor : public AudioProcessorEditor, private AudioProcessorValueTreeState::Listener
+#if JUCE_DEBUG
+#include <melatonin_inspector/melatonin_inspector.h>
+#endif
+
+class GainAudioProcessorEditor
+    : public AudioProcessorEditor
+    , private AudioProcessorValueTreeState::Listener
 {
-   public:
+public:
     // Basic
     explicit GainAudioProcessorEditor(GainAudioProcessor &);
     ~GainAudioProcessorEditor() override;
     void paint(Graphics &) override;
     void resized() override;
+    void parameterChanged(const String &parameterID, float newValue) override;
 
-   private:
+    // float getCurrentScale();
+    // void setCurrentScale(float newScale);
+
+private:
     // Mouse callbacks
     void mouseDoubleClick(const MouseEvent &) override;
     void mouseDrag(const MouseEvent &) override;
@@ -29,21 +39,23 @@ class GainAudioProcessorEditor : public AudioProcessorEditor, private AudioProce
     void mouseWheelMove(const MouseEvent &, const MouseWheelDetails &) override;
 
     // Member variables
-    GainAudioProcessor         &audioProcessor;
-    CustomLookAndFeel           customLookAndFeel;
-    std::unique_ptr<MyCanvas>   myCanvas;
-    std::unique_ptr<CocoKnob>   knob;
-    std::unique_ptr<TitleBox>   titleComponent;
-    std::unique_ptr<TextButton> bypassButton;
+    GainAudioProcessor       &audioProcessor;
+    CustomLookAndFeel         customLookAndFeel;
+    std::unique_ptr<MyCanvas> myCanvas;
+    std::unique_ptr<CocoKnob> knob;
+    std::unique_ptr<TitleBox> titleComponent;
 
     Point<int>   lastCenter             = {STARTUP_CENTER, STARTUP_CENTER};
     Point<float> posWhenStartedDragging = {0.0f, 0.0f};
 
+    // std::atomic<float> sc;
+
     // APVTS
     std::unique_ptr<AudioProcessorValueTreeState::SliderAttachment> knobAttachment;
-    std::unique_ptr<AudioProcessorValueTreeState::ButtonAttachment> bypassAttachment;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(GainAudioProcessorEditor)
-   public:
-    void parameterChanged(const String &parameterID, float newValue) override;
+
+#if JUCE_DEBUG
+    melatonin::Inspector inspector { *this, false };
+#endif
 };

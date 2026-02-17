@@ -1,4 +1,4 @@
-// dBob Studio 2025
+// dBob Studio 2026
 // Javier Rodrigo López
 // javiolonchelo@gmail.com
 
@@ -8,7 +8,8 @@
 #include "juce_audio_utils/juce_audio_utils.h"
 #include "common.h"
 
-class GainAudioProcessor : public AudioProcessor
+class GainAudioProcessor : public AudioProcessor,
+                           public AudioProcessorValueTreeState::Listener
 #if JucePlugin_Enable_ARA
     ,
                            public AudioProcessorARAExtension
@@ -20,6 +21,8 @@ class GainAudioProcessor : public AudioProcessor
 
     void prepareToPlay(double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
+
+    // float lastScale {1.0f};
 
 #ifndef JucePlugin_PreferredChannelConfigurations
     bool isBusesLayoutSupported(const BusesLayout &layouts) const override;
@@ -45,6 +48,10 @@ class GainAudioProcessor : public AudioProcessor
 
     void getStateInformation(MemoryBlock &destData) override;
     void setStateInformation(const void *data, int sizeInBytes) override;
+
+    void parameterChanged(const String &parameterID, float newValue) override;
+
+    AudioProcessorParameter* getBypassParameter() const override;
 
     std::unique_ptr<AudioProcessorValueTreeState> apvts;
 

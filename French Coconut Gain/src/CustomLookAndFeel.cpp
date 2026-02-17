@@ -1,4 +1,4 @@
-// dBob Studio 2025
+// dBob Studio 2026
 // Javier Rodrigo López
 // javiolonchelo@gmail.com
 
@@ -9,25 +9,20 @@
 
 CustomLookAndFeel::CustomLookAndFeel()
 {
-    background = std::make_unique<Image>(ImageCache::getFromMemory(BinaryData::background_jpg, BinaryData::background_jpgSize));
-    jassert(background != nullptr);
-    jassert(background->isValid());
-
     coco = std::make_unique<Image>(ImageCache::getFromMemory(BinaryData::coco_png, BinaryData::coco_pngSize));
-    jassert(coco != nullptr);
-    jassert(coco->isValid());
+    jassert(coco != nullptr && coco->isValid());
+
+    customTypeface = Typeface::createSystemTypefaceFor(BinaryData::JuliaMonoExtraBoldItalic_ttf, BinaryData::JuliaMonoExtraBoldItalic_ttfSize);
+    jassert(customTypeface != nullptr);
 }
 
 CustomLookAndFeel::~CustomLookAndFeel() = default;
 
 void CustomLookAndFeel::drawRotarySlider(Graphics &g, int x, int y, int width, int height, float sliderPosProportional, float rotaryStartAngle,
-                                         float rotaryEndAngle, Slider &slider)
+                                         float rotaryEndAngle, Slider&)
 {
-    const auto cocoPtr = dynamic_cast<CocoKnob *>(&slider);
-    jassert(cocoPtr != nullptr);
-
-    const float centerX       = x + width / 2;
-    const float centerY       = y + height / 2;
+    const float centerX       = static_cast<float>(x) + static_cast<float>(width) / 2;
+    const float centerY       = static_cast<float>(y) + static_cast<float>(height) / 2;
     const auto  rotationAngle = rotaryStartAngle + (rotaryEndAngle - rotaryStartAngle) * sliderPosProportional;
     g.addTransform(AffineTransform::rotation(rotationAngle, centerX, centerY));
 
@@ -40,5 +35,10 @@ void CustomLookAndFeel::drawRotarySlider(Graphics &g, int x, int y, int width, i
 // Fonts
 Typeface::Ptr CustomLookAndFeel::getTypefaceForFont(const Font &)
 {
-    return Typeface::createSystemTypefaceFor(BinaryData::JuliaMonoExtraBoldItalic_ttf, BinaryData::JuliaMonoExtraBoldItalic_ttfSize);
+    return customTypeface;
+}
+
+Font CustomLookAndFeel::getCustomFont(float height) const
+{
+    return FontOptions(customTypeface).withHeight(height);
 }

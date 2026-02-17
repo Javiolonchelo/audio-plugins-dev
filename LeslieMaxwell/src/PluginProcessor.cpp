@@ -8,11 +8,9 @@
 AudioProcessorValueTreeState::ParameterLayout LeslieMaxwellProcessor::createParameterLayout()
 {
     std::vector<std::unique_ptr<RangedAudioParameter>> params;
-    params.push_back(std::make_unique<AudioParameterFloat>(P_VCO_FREQ_ID, P_VCO_FREQ_NAME, NormalisableRange<float>(0.0f, MAX_VCO_FREQ, 0.0001f, 0.4f), 1.0f));
-    params.push_back(std::make_unique<AudioParameterFloat>(P_VCO_DEPTH_ID, P_VCO_DEPTH_NAME, NormalisableRange<float>(0.0f, MAX_VCO_DEPTH, 0.0001f), 0.0f));
+    params.push_back(std::make_unique<AudioParameterFloat>(P_VCO_DEPTH_ID , P_VCO_DEPTH_NAME, NormalisableRange<float>(0.0f, MAX_VCO_DEPTH, 0.0001f, 0.4f), 15.0f));
+    params.push_back(std::make_unique<AudioParameterFloat>(P_VCO_FREQ_ID, P_VCO_FREQ_NAME, NormalisableRange<float>(0.0f, MAX_VCO_FREQ, 0.0001f), 1.78f));
     params.push_back(std::make_unique<AudioParameterBool>(P_BYPASS_ID, P_BYPASS_NAME, true));
-    // params.push_back(std::make_unique<AudioParameterFloat>(P_X_ID, P_X_NAME, 0.0f, 1.0f, 0.5f));
-    // params.push_back(std::make_unique<AudioParameterFloat>(P_Y_ID, P_Y_NAME, 0.0f, 1.0f, 0.5f));
     return {params.begin(), params.end()};
 }
 
@@ -33,6 +31,7 @@ LeslieMaxwellProcessor::LeslieMaxwellProcessor()
     {
         vcoDepth[channel] = std::make_unique<SmoothedValue<float>>();
         vcoFreq[channel]  = std::make_unique<SmoothedValue<float>>();
+        mod[channel]      = std::make_unique<SmoothedValue<float>>();
     }
 }
 
@@ -86,8 +85,10 @@ void LeslieMaxwellProcessor::prepareToPlay(double sampleRate, int samplesPerBloc
         delayBuffer[channel].prepare(static_cast<int>(2.0f * MAX_VCO_DEPTH * sampleRate / 1000.0f));
         vcoDepth[channel]->setCurrentAndTargetValue(apvts->getRawParameterValue(P_VCO_DEPTH_ID)->load());
         vcoFreq[channel]->setCurrentAndTargetValue(apvts->getRawParameterValue(P_VCO_FREQ_ID)->load());
+        mod[channel]->setCurrentAndTargetValue(apvts->getRawParameterValue(P_MOD_ID)->load());
         vcoDepth[channel]->reset(sampleRate, RAMP_LENGTH);
         vcoFreq[channel]->reset(sampleRate, RAMP_LENGTH);
+        mod[channel]->reset(sampleRate, RAMP_LENGTH);
     }
 
     setLatencySamples(static_cast<int>(2.0f * MAX_VCO_DEPTH * sampleRate / 1000.0f));
@@ -130,22 +131,38 @@ void LeslieMaxwellProcessor::processBlock(AudioBuffer<float> &buffer, MidiBuffer
 
     for (int channel = 0; channel < numIns; ++channel)
     {
-        vcoDepth[channel]->setTargetValue(apvts->getRawParameterValue(P_VCO_FREQ_ID)->load());  // TODO This goes out of the process block
-        vcoFreq[channel]->setTargetValue(apvts->getRawParameterValue(P_VCO_DEPTH_ID)->load());
-        if (apvts->getParameter(P_BYPASS_ID)->getValue() == true)
-        {
-            auto *y = buffer.getWritePointer(channel);
-            for (int n = 0; n < N; ++n)
-            {
-                delayBuffer[channel].push(y[n]);
-                vcoPhase[channel] = std::fmod(vcoPhase[channel] + MathConstants<float>::twoPi * vcoFreq[channel]->getNextValue() / Fs, MathConstants<float>::twoPi);
+        // const int sign = channel == 0 ? 1 : -1;
+        const int sign = 1;
+        vcoFreq[channel]->setTargetValue(apvts->getRawParameterValue(P_VCO_FREQ_ID)->load());  // TODO This goes out of the process block
+        vcoDepth[channel]->setTargetValue(apvts->getRawParameterValue(P_VCO_DEPTH_ID)->load());
+        mod[channel]->setTargetValue(apvts->getRawParameterValue(P_MOD_ID)->load());
 
-                const auto newDepthValue = vcoDepth[channel]->getNextValue();
-                const auto vcoOut        = newDepthValue * std::sin(vcoPhase[channel]) + static_cast<float>(delayBuffer[channel].getSize() / 2);
-                y[n]                     = delayBuffer[channel].get(vcoOut);
-            }
+        auto *y = buffer.getWritePointer(channel);
+        for (int n = 0; n < N; ++n)
+        {
+            currentVco = vcoFreq[channel]->getNextValue() * sign;
+
+            delayBuffer[channel].push(y[n]);
+            vcoPhase[channel] = std::fmod(vcoPhase[channel] + MathConstants<float>::twoPi * currentVco / Fs, MathConstants<float>::twoPi);
+
+            const auto newDepthValue = vcoDepth[channel]->getNextValue();
+            const auto vcoOut        = newDepthValue * std::sin(vcoPhase[channel]) + static_cast<float>(delayBuffer[channel].getSize() / 2);
+            // y[n]                          = delayBuffer[channel].get(vcoOut);
+
+            tremoloPhase[channel] = std::fmod(tremoloPhase[channel] + MathConstants<float>::twoPi * currentVco / Fs, MathConstants<float>::twoPi);
+            // const auto newModValue = vcoFreq[channel]->getNextValue();
+            y[n] *= (1 + std::sin(tremoloPhase[channel])) / 2;
         }
     }
+
+    auto b = buffer.getArrayOfWritePointers();
+
+    // for (int n = 0; n < N; ++n)
+    // {
+    //     const auto aux = b[0][n];
+    //     b[0][n] += 0.7 * b[1][n];
+    //     b[1][n] += 0.7 * aux;
+    // }
 }
 void LeslieMaxwellProcessor::processBlockBypassed(AudioBuffer<float> &buffer, MidiBuffer &midiMessages)
 {

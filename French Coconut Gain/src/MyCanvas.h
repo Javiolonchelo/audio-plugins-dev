@@ -1,9 +1,8 @@
-//
-// Created by javiolonchelo on 24/04/2025.
-//
+// dBob Studio 2026
+// Javier Rodrigo López
+// javiolonchelo@gmail.com
 
-#ifndef MYCANVAS_H
-#define MYCANVAS_H
+#pragma once
 
 #include "juce_gui_basics/juce_gui_basics.h"
 #include "CustomLookAndFeel.h"
@@ -16,9 +15,14 @@ class MyCanvas : public Component
    public:
     explicit MyCanvas();
     void paint(Graphics &g) override;
+    void resized() override;
+    
+    void changeBackground(bool mode);
 
    private:
     std::unique_ptr<Image> background;
+    std::unique_ptr<Label> versionLabel;
+    CustomLookAndFeel      customLookAndFeel;
 
     // Mouse callbacks
     void mouseDoubleClick(const MouseEvent &) override;
@@ -27,5 +31,3 @@ class MyCanvas : public Component
     void mouseDown(const MouseEvent &) override;
     void mouseWheelMove(const MouseEvent &, const MouseWheelDetails &) override;
 };
-
-#endif  // MYCANVAS_H

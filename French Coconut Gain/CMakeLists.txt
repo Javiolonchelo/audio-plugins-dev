@@ -1,27 +1,26 @@
-# dBob Studio 2025
+# dBob Studio 2026
 # Javier Rodrigo López
 # javiolonchelo@gmail.com
 
 cmake_minimum_required(VERSION 3.15)
-project(Gain VERSION 0.2.1 LANGUAGES C CXX)
+project(French_Coconut_Gain VERSION 1.0.0 LANGUAGES C CXX)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
+#set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Fetch JUCE
+# Fetch JUCE and other modules
 include(FetchContent)
-if (DEFINED ENV{JUCE_PATH} AND NOT "$ENV{JUCE_PATH}" STREQUAL "")
-    FetchContent_Declare(JUCE
-            SOURCE_DIR "$ENV{JUCE_PATH}")
-else ()
-    FetchContent_Declare(JUCE
-            GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
-            GIT_TAG 8.0.7
-    )
-endif ()
+FetchContent_Declare(JUCE SOURCE_DIR "$ENV{DBOB_STUDIO_JUCE_PATH}")
 FetchContent_MakeAvailable(JUCE)
 
+FetchContent_Declare (melatonin_inspector
+  GIT_REPOSITORY https://github.com/sudara/melatonin_inspector.git
+  GIT_TAG origin/main
+  SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/melatonin_inspector)
+FetchContent_MakeAvailable (melatonin_inspector)
+
 # Documentation
-find_package(Doxygen REQUIRED dot)
+find_package(Doxygen OPTIONAL_COMPONENTS dot)
 
 set(DOXYGEN_ALPHABETICAL_INDEX YES)
 set(DOXYGEN_BUILTIN_STL_SUPPORT YES)
@@ -50,9 +49,11 @@ set(DOXYGEN_SOURCE_BROWSER YES)
 set(DOXYGEN_STRIP_CODE_COMMENTS NO)
 set(DOXYGEN_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/docs")
 
-doxygen_add_docs(doc "src/" ALL
-        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-        COMMENT "Creating HTML documentation...")
+if (DOXYGEN_FOUND)
+    doxygen_add_docs(doc "src/"
+            WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+            COMMENT "Creating HTML documentation...")
+endif ()
 
 set(COMPANY_NAME "dBob Studio")
 set(PLUGIN_MANUFACTURER_CODE dBob)
@@ -66,7 +67,6 @@ set(PLUGIN_FINAL_NAME "French Coconut Gain")
 # Paths
 set(SOURCE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-# juce_set_aax_sdk_path(...)
 juce_add_plugin(
         ${PROJECT_NAME}
         BUNDLE_ID com.dBobStudio.FrenchCoconutGain
@@ -92,6 +92,9 @@ juce_add_binary_data(BinaryData
         # Images
         ${CMAKE_SOURCE_DIR}/assets/background.jpg
         ${CMAKE_SOURCE_DIR}/assets/coco.png
+        ${CMAKE_SOURCE_DIR}/assets/croissant.png
+        ${CMAKE_SOURCE_DIR}/assets/flag.png
+        ${CMAKE_SOURCE_DIR}/assets/room-for-crazy-cats.jpg
 
         # Fonts
         ${CMAKE_SOURCE_DIR}/assets/fonts/JuliaMono-ExtraBoldItalic.ttf
@@ -120,6 +123,7 @@ target_include_directories(${PROJECT_NAME}
         PRIVATE
         ${SOURCE_PATH}
 )
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_23)
 message(STATUS "Source path: ${SOURCE_PATH}")
 
 target_compile_definitions(${PROJECT_NAME}
@@ -132,6 +136,7 @@ target_compile_definitions(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
         PRIVATE
         BinaryData
+        melatonin_inspector
 
         juce::juce_audio_utils
         PUBLIC
@@ -139,3 +144,33 @@ target_link_libraries(${PROJECT_NAME}
         juce::juce_recommended_lto_flags
         juce::juce_recommended_warning_flags
 )
+
+set(LICENSE_FILE "${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE")
+
+if (APPLE)
+    if (CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+        add_custom_target(Installer
+                COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/sign_and_notarize.sh
+                ${CMAKE_BUILD_TYPE}
+                "${BUNDLE_ID}"
+                "${PLUGIN_FINAL_NAME}"
+                "${PROJECT_VERSION}"
+                "${PROJECT_NAME}"
+                "${LICENSE_FILE}"
+                WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+                COMMENT "Creating signed and notarized installer for ${PLUGIN_FINAL_NAME}"
+                USES_TERMINAL
+                VERBATIM
+        )
+
+        add_dependencies(Installer ${PROJECT_NAME}_VST3 ${PROJECT_NAME}_AU ${PROJECT_NAME}_Standalone)
+
+        message(STATUS "Code signing integration enabled")
+        message(STATUS "Plugin: ${PLUGIN_FINAL_NAME} v${PROJECT_VERSION}")
+        message(STATUS "Bundle ID: ${BUNDLE_ID}")
+        message(STATUS "To create a signed installer, run: cmake --build . --target Installer")
+    else()
+        message(STATUS "Installer target only available for Release builds")
+        message(STATUS "Current build type: ${CMAKE_BUILD_TYPE}")
+    endif()
+endif ()

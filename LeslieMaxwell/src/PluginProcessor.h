@@ -24,7 +24,8 @@ class LeslieMaxwellProcessor : public AudioProcessor
 
 #ifndef JucePlugin_PreferredChannelConfigurations
     bool isBusesLayoutSupported(const BusesLayout &layouts) const override;
-#endif
+    String get_value();
+    #endif
 
     void processBlock(AudioBuffer<float> &, MidiBuffer &) override;
     void processBlockBypassed(AudioBuffer<float> &buffer, MidiBuffer &midiMessages) override;
@@ -50,16 +51,20 @@ class LeslieMaxwellProcessor : public AudioProcessor
 
     std::unique_ptr<AudioProcessorValueTreeState> apvts;
 
-   private:
-    static AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
+    float currentVco{0.0f};
+    float vcoPhase[2] = {0.0f, 0.0f};
+
+   private:static AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
     FractionalRingBuffer<float> delayBuffer[2];
 
     // VCO internal state variables
-    float vcoPhase[2] = {0.0f, 0.0f};
+    float tremoloPhase[2] = {0.0f, 0.0f};
 
     std::unique_ptr<SmoothedValue<float, ValueSmoothingTypes::Linear>> vcoFreq[2];
     std::unique_ptr<SmoothedValue<float, ValueSmoothingTypes::Linear>> vcoDepth[2];
+    std::unique_ptr<SmoothedValue<float, ValueSmoothingTypes::Linear>> mod[2];
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LeslieMaxwellProcessor)
 };
+
