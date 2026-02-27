@@ -10,7 +10,13 @@ set(CMAKE_CXX_STANDARD 23)
 
 # Fetch JUCE and other modules
 include(FetchContent)
-FetchContent_Declare(JUCE SOURCE_DIR "$ENV{DBOB_STUDIO_JUCE_PATH}")
+if(DEFINED ENV{DBOB_STUDIO_JUCE_PATH} AND NOT "$ENV{DBOB_STUDIO_JUCE_PATH}" STREQUAL "")
+    FetchContent_Declare(JUCE SOURCE_DIR "$ENV{DBOB_STUDIO_JUCE_PATH}")
+else()
+    FetchContent_Declare(JUCE
+            GIT_REPOSITORY https://github.com/juce-framework/JUCE.git
+            GIT_TAG 8.0.7)
+endif()
 FetchContent_MakeAvailable(JUCE)
 
 FetchContent_Declare (melatonin_inspector
@@ -61,7 +67,13 @@ set(PLUGIN_MANUFACTURER_CODE dBob)
 # Customize the plugin here
 set(BUNDLE_ID com.dBobStudio.FrenchCoconutGain)
 set(PLUGIN_CODE Frgn)
-set(FORMATS AU VST3 Standalone)
+if(APPLE)
+    set(FORMATS AU VST3 Standalone)
+    set(COPY_PLUGIN_AFTER_BUILD TRUE)
+else()
+    set(FORMATS VST3 Standalone)
+    set(COPY_PLUGIN_AFTER_BUILD FALSE)
+endif()
 set(PLUGIN_FINAL_NAME "French Coconut Gain")
 
 # Paths
@@ -80,7 +92,7 @@ juce_add_plugin(
         PLUGIN_CODE ${PLUGIN_CODE}
         PLUGIN_MANUFACTURER_CODE ${PLUGIN_MANUFACTURER_CODE}
         PRODUCT_NAME ${PLUGIN_FINAL_NAME}
-        COPY_PLUGIN_AFTER_BUILD TRUE
+        COPY_PLUGIN_AFTER_BUILD ${COPY_PLUGIN_AFTER_BUILD}
         JUCE_ENABLE_MODULE_SOURCE_GROUPS TRUE
         ICON_BIG "${CMAKE_SOURCE_DIR}/assets/favicon-32x32.png"
         ICON_SMALL "${CMAKE_SOURCE_DIR}/assets/favicon-32x32.png"
@@ -173,4 +185,37 @@ if (APPLE)
         message(STATUS "Installer target only available for Release builds")
         message(STATUS "Current build type: ${CMAKE_BUILD_TYPE}")
     endif()
+endif ()
+
+if (WIN32)
+    find_program(ISCC_EXECUTABLE
+            NAMES ISCC.exe ISCC
+            PATHS
+            "C:/Program Files (x86)/Inno Setup 6"
+            "C:/Program Files/Inno Setup 6"
+            "$ENV{LOCALAPPDATA}/Programs/Inno Setup 6"
+    )
+    if (ISCC_EXECUTABLE)
+        set(INSTALLER_OUTPUT_DIR "${CMAKE_BINARY_DIR}/installer_output")
+        set(VST3_ARTEFACTS_DIR "${CMAKE_BINARY_DIR}/${PROJECT_NAME}_artefacts/$<CONFIG>/VST3")
+        add_custom_target(Installer
+                COMMAND ${CMAKE_COMMAND} -E make_directory "${INSTALLER_OUTPUT_DIR}"
+                COMMAND "${ISCC_EXECUTABLE}"
+                "/DMyAppVersion=${PROJECT_VERSION}"
+                "/DOutputDir=${INSTALLER_OUTPUT_DIR}"
+                "/DPluginSourceDir=${VST3_ARTEFACTS_DIR}"
+                "/DLicenseFile=${LICENSE_FILE}"
+                "${CMAKE_CURRENT_SOURCE_DIR}/installer/InstallerTemplate.iss"
+                WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+                COMMENT "Creating Windows installer for ${PLUGIN_FINAL_NAME}"
+                USES_TERMINAL
+                VERBATIM
+        )
+        add_dependencies(Installer ${PROJECT_NAME}_VST3 ${PROJECT_NAME}_Standalone)
+        message(STATUS "Inno Setup found: ${ISCC_EXECUTABLE}")
+        message(STATUS "To create installer, run: cmake --build . --target Installer --config Release")
+    else ()
+        message(STATUS "Inno Setup not found - Installer target not available")
+        message(STATUS "Install from https://jrsoftware.org/isinfo.php")
+    endif ()
 endif ()

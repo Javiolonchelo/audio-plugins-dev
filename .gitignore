@@ -1,4 +1,5 @@
 # Whatever
+.claude/
 *.d
 build/
 docs/

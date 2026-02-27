@@ -20,7 +20,7 @@ All sensitive credentials are stored securely:
 
 ```bash
 # Navigate to project directory
-cd "/Users/javiolonchelo/audio-plugins-dev/French Coconut Gain"
+cd "/path/to/audio-plugins-dev/French Coconut Gain"
 
 # Configure CMake for Release
 cmake -B cmake-build-release -DCMAKE_BUILD_TYPE=Release
