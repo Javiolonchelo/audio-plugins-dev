@@ -1,0 +1,9 @@
+[submodule "/Users/javiolonchelo/audio-plugins-dev/ext/melatonin_inspector"]
+	path = /Users/javiolonchelo/audio-plugins-dev/ext/melatonin_inspector
+	url = https://github.com/sudara/melatonin_inspector.git
+[submodule "ext/melatonin_inspector"]
+	path = ext/melatonin_inspector
+	url = https://github.com/sudara/melatonin_inspector.git
+[submodule "ext/melatonin_blur"]
+	path = ext/melatonin_blur
+	url = https://github.com/sudara/melatonin_blur.git

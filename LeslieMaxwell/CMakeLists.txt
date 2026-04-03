@@ -19,6 +19,12 @@ else ()
 endif ()
 FetchContent_MakeAvailable(JUCE)
 
+# Melatonin Inspector (externally cloned)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../ext/melatonin_inspector ${CMAKE_CURRENT_BINARY_DIR}/melatonin_inspector)
+
+# Melatonin Blur (externally cloned)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../ext/melatonin_blur ${CMAKE_CURRENT_BINARY_DIR}/melatonin_blur)
+
 # Documentation
 find_package(Doxygen REQUIRED dot)
 
@@ -80,16 +86,19 @@ juce_add_plugin(
         PRODUCT_NAME ${PLUGIN_FINAL_NAME}
 )
 
-# Collect all files under assets/ recursively and add them as binary data
-file(GLOB_RECURSE LESLIE_ASSET_FILES CONFIGURE_DEPENDS
-        "${CMAKE_SOURCE_DIR}/assets/render/*"
-)
-list(LENGTH LESLIE_ASSET_FILES LESLIE_ASSET_COUNT)
-message(STATUS "Found ${LESLIE_ASSET_COUNT} assets under ${CMAKE_SOURCE_DIR}/assets/")
-
+# JPEG filmstrips (split due to JPEG 65535px height limit)
 juce_add_binary_data(BinaryData
         SOURCES
-        ${LESLIE_ASSET_FILES}
+        "${CMAKE_SOURCE_DIR}/assets/maxwell_strip_0.jpg"
+        "${CMAKE_SOURCE_DIR}/assets/maxwell_strip_1.jpg"
+        "${CMAKE_SOURCE_DIR}/assets/top.png"
+        "${CMAKE_SOURCE_DIR}/assets/rev_on.png"
+        "${CMAKE_SOURCE_DIR}/assets/rev_off.png"
+        "${CMAKE_SOURCE_DIR}/assets/rev_hold.png"
+        "${CMAKE_SOURCE_DIR}/assets/sync_on.png"
+        "${CMAKE_SOURCE_DIR}/assets/sync_off.png"
+        "${CMAKE_SOURCE_DIR}/assets/sync_hold.png"
+        "${CMAKE_SOURCE_DIR}/assets/fonts/HellasFunBold.ttf"
 )
 
 target_sources(${PROJECT_NAME}
@@ -120,7 +129,10 @@ target_compile_definitions(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
         PRIVATE
         BinaryData
+        melatonin_blur
+        melatonin_inspector
         juce::juce_audio_utils
+        juce::juce_dsp
         juce::juce_opengl
         juce::juce_gui_basics
         juce::juce_gui_extra

@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include "PluginEditor.h"
 #include "juce_audio_utils/juce_audio_utils.h"
+#include "juce_dsp/juce_dsp.h"
 #include "common.h"
 #include "FractionalRingBuffer.h"
 
@@ -24,7 +24,6 @@ class LeslieMaxwellProcessor : public AudioProcessor
 
 #ifndef JucePlugin_PreferredChannelConfigurations
     bool isBusesLayoutSupported(const BusesLayout &layouts) const override;
-    String get_value();
     #endif
 
     void processBlock(AudioBuffer<float> &, MidiBuffer &) override;
@@ -54,16 +53,29 @@ class LeslieMaxwellProcessor : public AudioProcessor
     float currentVco{0.0f};
     float vcoPhase[2] = {0.0f, 0.0f};
 
+    // Tempo sync state (read by editor for UI)
+    std::atomic<float> currentBpm { 120.0f };
+
    private:static AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 
     FractionalRingBuffer<float> delayBuffer[2];
+
+    // High shelf filter (modulated by cat orientation)
+    dsp::IIR::Filter<float> highShelf[2];
+    double storedSampleRate = 44100.0;
 
     // VCO internal state variables
     float tremoloPhase[2] = {0.0f, 0.0f};
 
     std::unique_ptr<SmoothedValue<float, ValueSmoothingTypes::Linear>> vcoFreq[2];
     std::unique_ptr<SmoothedValue<float, ValueSmoothingTypes::Linear>> vcoDepth[2];
-    std::unique_ptr<SmoothedValue<float, ValueSmoothingTypes::Linear>> mod[2];
+    SmoothedValue<float, ValueSmoothingTypes::Linear> smoothedPhaseOffset;
+
+    // Crossfade on mode/direction change to avoid clicks
+    int lastMode = -1;
+    int lastDirection = 1;
+    int crossfadePos = 0;       // current position in fade-in ramp
+    static constexpr int CROSSFADE_LEN = 128; // ~3ms at 44.1kHz
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LeslieMaxwellProcessor)
 };
