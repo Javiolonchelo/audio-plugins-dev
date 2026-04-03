@@ -2,7 +2,7 @@
 # javiolonchelo@gmail.com
 
 cmake_minimum_required(VERSION 3.15)
-project(LeslieMaxwell VERSION 0.0.3 LANGUAGES C CXX)
+project(LeslieMaxwell VERSION 1.0.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 
@@ -141,3 +141,33 @@ target_link_libraries(${PROJECT_NAME}
         juce::juce_recommended_lto_flags
         juce::juce_recommended_warning_flags
 )
+
+set(LICENSE_FILE "${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE")
+
+if (APPLE)
+    if (CMAKE_BUILD_TYPE STREQUAL "Release" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+        add_custom_target(Installer
+                COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/sign_and_notarize.sh
+                ${CMAKE_BUILD_TYPE}
+                "${BUNDLE_ID}"
+                "${PLUGIN_FINAL_NAME}"
+                "${PROJECT_VERSION}"
+                "${PROJECT_NAME}"
+                "${LICENSE_FILE}"
+                WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+                COMMENT "Creating signed and notarized installer for ${PLUGIN_FINAL_NAME}"
+                USES_TERMINAL
+                VERBATIM
+        )
+
+        add_dependencies(Installer ${PROJECT_NAME}_VST3 ${PROJECT_NAME}_AU ${PROJECT_NAME}_Standalone)
+
+        message(STATUS "Code signing integration enabled")
+        message(STATUS "Plugin: ${PLUGIN_FINAL_NAME} v${PROJECT_VERSION}")
+        message(STATUS "Bundle ID: ${BUNDLE_ID}")
+        message(STATUS "To create a signed installer, run: cmake --build . --target Installer")
+    else()
+        message(STATUS "Installer target only available for Release builds")
+        message(STATUS "Current build type: ${CMAKE_BUILD_TYPE}")
+    endif()
+endif ()
