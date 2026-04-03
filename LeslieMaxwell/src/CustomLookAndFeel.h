@@ -30,6 +30,7 @@ class CustomLookAndFeel final : public LookAndFeel_V4
                               bool shouldDrawButtonAsDown) override;
     void drawToggleButton(Graphics &g, ToggleButton &button,
                           bool shouldDrawTickBox, bool isTickBoxTicked) override;
+    Font getPopupMenuFont() override;
 
     static constexpr float shadowAngle  = 53.5f;  // degrees
     static constexpr float shadowLength = 0.145f; // fraction of outerRadius

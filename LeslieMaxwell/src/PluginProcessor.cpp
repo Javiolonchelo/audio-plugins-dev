@@ -8,8 +8,8 @@
 AudioProcessorValueTreeState::ParameterLayout LeslieMaxwellProcessor::createParameterLayout()
 {
     std::vector<std::unique_ptr<RangedAudioParameter>> params;
-    params.push_back(std::make_unique<AudioParameterFloat>(P_VCO_DEPTH_ID , P_VCO_DEPTH_NAME, NormalisableRange<float>(0.0f, MAX_VCO_DEPTH, 0.0001f, 0.4f), 26.52f));
-    params.push_back(std::make_unique<AudioParameterFloat>(P_VCO_FREQ_ID, P_VCO_FREQ_NAME, NormalisableRange<float>(0.0f, MAX_VCO_FREQ, 0.0001f, 0.43f), 2.79f));
+    params.push_back(std::make_unique<AudioParameterFloat>(P_VCO_DEPTH_ID , P_VCO_DEPTH_NAME, NormalisableRange<float>(0.0f, MAX_VCO_DEPTH, 0.0001f, 0.4f), 9.62f));
+    params.push_back(std::make_unique<AudioParameterFloat>(P_VCO_FREQ_ID, P_VCO_FREQ_NAME, NormalisableRange<float>(0.0f, MAX_VCO_FREQ, 0.0001f, 0.43f), 1.09f));
     params.push_back(std::make_unique<AudioParameterChoice>(P_MODE_ID, P_MODE_NAME, StringArray{"Tremolo", "Tremolo + Panning", "Vibrato", "Doppler"}, 0));
     params.push_back(std::make_unique<AudioParameterBool>(P_DIRECTION_ID, "Direction", false));
     params.push_back(std::make_unique<AudioParameterBool>(P_SYNC_ID, "Sync", false));

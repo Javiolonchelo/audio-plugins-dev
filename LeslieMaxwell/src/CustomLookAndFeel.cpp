@@ -217,3 +217,8 @@ void CustomLookAndFeel::drawToggleButton(Graphics &, ToggleButton &, bool, bool)
 {
     // Visuals handled by editor paint() — button overlay images drawn there
 }
+
+Font CustomLookAndFeel::getPopupMenuFont()
+{
+    return getCustomFont(20.0f);
+}

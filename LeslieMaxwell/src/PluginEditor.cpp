@@ -17,8 +17,8 @@ LeslieMaxwellEditor::LeslieMaxwellEditor(LeslieMaxwellProcessor &p) : AudioProce
     MouseEvent::setDoubleClickTimeout(DOUBLE_CLICK_TIMEOUT);
 
     // Layout management
-    setResizable(true, false);
-    setSize(static_cast<int>(DESIGN_WIDTH), static_cast<int>(DESIGN_HEIGHT));
+    setResizable(true, true);
+    setSize(static_cast<int>(DESIGN_WIDTH * 0.75f), static_cast<int>(DESIGN_HEIGHT * 0.75f));
     getConstrainer()->setFixedAspectRatio(DESIGN_WIDTH / DESIGN_HEIGHT);
 
     // Content container — children live here, scaled by a single AffineTransform
