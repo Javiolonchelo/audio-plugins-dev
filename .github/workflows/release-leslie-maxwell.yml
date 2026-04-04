@@ -1,6 +1,7 @@
 name: Release Leslie Maxwell
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
