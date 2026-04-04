@@ -128,13 +128,37 @@ jobs:
           & $signtool sign /fd sha256 /tr http://time.certum.pl /td sha256 /v "$installer"
           & $signtool verify /pa "$installer"
 
+      - name: Rename installer to website-compatible format
+        shell: bash
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          OUTPUT_DIR="${{ env.PLUGIN_DIR }}/cmake-build-release/installer_output"
+          ORIGINAL=$(find "$OUTPUT_DIR" -name "*-Windows.exe" | head -1)
+          FINAL="$OUTPUT_DIR/WIN_${{ env.PROJECT_NAME }}_v${VERSION}.exe"
+          mv "$ORIGINAL" "$FINAL"
+          echo "Renamed: $(basename "$ORIGINAL") -> $(basename "$FINAL")"
+
+      - name: Read release metadata
+        id: meta
+        shell: bash
+        run: |
+          DESCRIPTION=$(sed -n 's/^description: *"\(.*\)"/\1/p' ${{ env.PLUGIN_DIR }}/release-info.yml)
+          IMAGE_URL=$(sed -n 's/^image: *"\(.*\)"/\1/p' ${{ env.PLUGIN_DIR }}/release-info.yml)
+          IMAGE_WIDTH=$(sed -n 's/^image_width: *\(.*\)/\1/p' ${{ env.PLUGIN_DIR }}/release-info.yml)
+          IMAGE_HEIGHT=$(sed -n 's/^image_height: *\(.*\)/\1/p' ${{ env.PLUGIN_DIR }}/release-info.yml)
+          echo "description=$DESCRIPTION" >> $GITHUB_OUTPUT
+          echo "image_url=$IMAGE_URL" >> $GITHUB_OUTPUT
+          echo "image_width=$IMAGE_WIDTH" >> $GITHUB_OUTPUT
+          echo "image_height=$IMAGE_HEIGHT" >> $GITHUB_OUTPUT
+
       - name: Upload to existing release
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           VERSION="${{ steps.version.outputs.version }}"
-          INSTALLER=$(find "${{ env.PLUGIN_DIR }}/cmake-build-release/installer_output" -name "*-Windows.exe" | head -1)
+          TAG_NAME="${{ env.PROJECT_NAME }}_v${VERSION}"
+          INSTALLER=$(find "${{ env.PLUGIN_DIR }}/cmake-build-release/installer_output" -name "WIN_*.exe" | head -1)
 
           if [ -z "$INSTALLER" ]; then
             echo "ERROR: Installer not found"
@@ -143,28 +167,17 @@ jobs:
 
           echo "Installer: $INSTALLER"
 
+          BODY="${{ steps.meta.outputs.description }}
+          <img width=\"${{ steps.meta.outputs.image_width }}\" height=\"${{ steps.meta.outputs.image_height }}\" alt=\"${{ env.PLUGIN_NAME }}\" src=\"${{ steps.meta.outputs.image_url }}\" />"
+
           # Check if a release for this version already exists (from macOS workflow)
-          if gh release view "v$VERSION" >/dev/null 2>&1; then
-            echo "Release v$VERSION exists — uploading Windows installer"
-            gh release upload "v$VERSION" "$INSTALLER" --clobber
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            echo "Release $TAG_NAME exists — uploading Windows installer"
+            gh release upload "$TAG_NAME" "$INSTALLER" --clobber
           else
-            echo "Creating new release v$VERSION"
-            gh release create "v$VERSION" \
-              --title "Leslie Maxwell v$VERSION" \
-              --notes "$(cat <<'NOTES'
-          ## Leslie Maxwell v$VERSION
-
-          ### Installation (Windows)
-          Download the `.exe` installer and run it. You can choose to install:
-          - VST3 plugin
-          - Standalone application
-
-          ### Installation (macOS)
-          Download the `.pkg` installer.
-
-          ### Changelog
-          See commit history for changes.
-          NOTES
-          )" \
+            echo "Creating new release $TAG_NAME"
+            gh release create "$TAG_NAME" \
+              --title "${{ env.PLUGIN_NAME }} v$VERSION" \
+              --notes "$BODY" \
               "$INSTALLER"
           fi

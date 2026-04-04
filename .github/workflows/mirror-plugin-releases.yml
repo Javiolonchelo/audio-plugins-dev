@@ -23,17 +23,17 @@ jobs:
 
           # Check if LeslieMaxwell submodule pointer changed
           if git diff HEAD~1 HEAD --name-only | grep -q '^LeslieMaxwell$'; then
-            PLUGINS=$(echo "$PLUGINS" | jq -c '. + [{"repo":"Javiolonchelo/LeslieMaxwell","name":"Leslie Maxwell","prefix":"leslie-maxwell"}]')
+            PLUGINS=$(echo "$PLUGINS" | jq -c '. + [{"repo":"Javiolonchelo/LeslieMaxwell","name":"Leslie Maxwell","prefix":"LeslieMaxwell"}]')
           fi
 
           # Check if French Coconut Gain submodule pointer changed
           if git diff HEAD~1 HEAD --name-only | grep -q '^French Coconut Gain$'; then
-            PLUGINS=$(echo "$PLUGINS" | jq -c '. + [{"repo":"Javiolonchelo/FrenchCoconutGain","name":"French Coconut Gain","prefix":"french-coconut-gain"}]')
+            PLUGINS=$(echo "$PLUGINS" | jq -c '. + [{"repo":"Javiolonchelo/FrenchCoconutGain","name":"French Coconut Gain","prefix":"FrenchCoconutGain"}]')
           fi
 
           # For workflow_dispatch, check all plugins
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            PLUGINS='[{"repo":"Javiolonchelo/LeslieMaxwell","name":"Leslie Maxwell","prefix":"leslie-maxwell"},{"repo":"Javiolonchelo/FrenchCoconutGain","name":"French Coconut Gain","prefix":"french-coconut-gain"}]'
+            PLUGINS='[{"repo":"Javiolonchelo/LeslieMaxwell","name":"Leslie Maxwell","prefix":"LeslieMaxwell"},{"repo":"Javiolonchelo/FrenchCoconutGain","name":"French Coconut Gain","prefix":"FrenchCoconutGain"}]'
           fi
 
           echo "plugins=$PLUGINS" >> $GITHUB_OUTPUT
@@ -64,7 +64,7 @@ jobs:
           fi
 
           echo "$RELEASES" | jq -r '.[].tagName' | while read -r TAG; do
-            MIRROR_TAG="${{ matrix.plugin.prefix }}-${TAG}"
+            MIRROR_TAG="${{ matrix.plugin.prefix }}_${TAG}"
 
             # Skip if already mirrored
             if gh release view "$MIRROR_TAG" >/dev/null 2>&1; then

@@ -205,9 +205,21 @@ productsign --sign "$INSTALLER_IDENTITY" \
 if [ $? -eq 0 ]; then
     print_success "Installer package signed successfully"
     rm "$UNSIGNED_PKG"
+    # Clean up intermediate component packages
+    rm -f "$OUTPUT_DIR/vst3_comp.pkg" "$OUTPUT_DIR/au_comp.pkg"
+    rm -f "$DIST_XML"
+    rm -rf "$STAGING_VST3" "$STAGING_AU"
 else
     print_error "Failed to sign installer package"
     exit 1
+fi
+
+# Rename to website-compatible format: MAC_{ProjectName}_v{version}.pkg
+FINAL_PKG="$OUTPUT_DIR/MAC_${PROJECT_NAME}_v${PLUGIN_VERSION}.pkg"
+if [ "$SIGNED_PKG" != "$FINAL_PKG" ]; then
+    mv "$SIGNED_PKG" "$FINAL_PKG"
+    SIGNED_PKG="$FINAL_PKG"
+    print_status "Renamed installer to: $(basename "$FINAL_PKG")"
 fi
 
 print_status "Submitting package for notarization..."

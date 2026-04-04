@@ -11,6 +11,7 @@ on:
 env:
   BUILD_TYPE: Release
   PLUGIN_DIR: LeslieMaxwell
+  PROJECT_NAME: LeslieMaxwell
 
 jobs:
   build-and-release:
@@ -39,7 +40,7 @@ jobs:
       - name: Check if tag exists
         id: tag_check
         run: |
-          if git rev-parse "v${{ steps.version.outputs.current }}" >/dev/null 2>&1; then
+          if git rev-parse "${{ env.PROJECT_NAME }}_v${{ steps.version.outputs.current }}" >/dev/null 2>&1; then
             echo "exists=true" >> $GITHUB_OUTPUT
           else
             echo "exists=false" >> $GITHUB_OUTPUT
@@ -144,34 +145,38 @@ jobs:
             "${{ env.PLUGIN_DIR }}" \
             "LICENSE"
 
+      - name: Read release metadata
+        id: meta
+        run: |
+          DESCRIPTION=$(sed -n 's/^description: *"\(.*\)"/\1/p' ${{ env.PLUGIN_DIR }}/release-info.yml)
+          IMAGE_URL=$(sed -n 's/^image: *"\(.*\)"/\1/p' ${{ env.PLUGIN_DIR }}/release-info.yml)
+          IMAGE_WIDTH=$(sed -n 's/^image_width: *\(.*\)/\1/p' ${{ env.PLUGIN_DIR }}/release-info.yml)
+          IMAGE_HEIGHT=$(sed -n 's/^image_height: *\(.*\)/\1/p' ${{ env.PLUGIN_DIR }}/release-info.yml)
+          echo "description=$DESCRIPTION" >> $GITHUB_OUTPUT
+          echo "image_url=$IMAGE_URL" >> $GITHUB_OUTPUT
+          echo "image_width=$IMAGE_WIDTH" >> $GITHUB_OUTPUT
+          echo "image_height=$IMAGE_HEIGHT" >> $GITHUB_OUTPUT
+
       - name: Create Git tag
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag -a "v${{ env.VERSION }}" -m "Release Leslie Maxwell v${{ env.VERSION }}"
-          git push origin "v${{ env.VERSION }}"
+          TAG_NAME="${{ env.PROJECT_NAME }}_v${{ env.VERSION }}"
+          git tag -a "$TAG_NAME" -m "Release Leslie Maxwell v${{ env.VERSION }}"
+          git push origin "$TAG_NAME"
+          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ env.VERSION }}
-          name: Leslie Maxwell v${{ env.VERSION }}
-          body: |
-            ## Leslie Maxwell v${{ env.VERSION }}
-            
-            ### Installation
-            Download the `.pkg` installer and run it. You can choose to install:
-            - VST3 plugin → `/Library/Audio/Plug-Ins/VST3/`
-            - Audio Unit (AU) → `/Library/Audio/Plug-Ins/Components/`
-            
-            ### Changelog
-            See commit history for changes.
-          files: |
-            ${{ env.PLUGIN_DIR }}/cmake-build-release/installer_output/*.pkg
-          draft: false
-          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BODY="${{ steps.meta.outputs.description }}
+          <img width=\"${{ steps.meta.outputs.image_width }}\" height=\"${{ steps.meta.outputs.image_height }}\" alt=\"Leslie Maxwell\" src=\"${{ steps.meta.outputs.image_url }}\" />"
+
+          gh release create "${{ env.TAG_NAME }}" \
+            --title "Leslie Maxwell v${{ env.VERSION }}" \
+            --notes "$BODY" \
+            ${{ env.PLUGIN_DIR }}/cmake-build-release/installer_output/MAC_*.pkg
 
       - name: Cleanup keychain
         if: always()
