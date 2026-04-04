@@ -16,7 +16,7 @@ env:
 jobs:
   build-and-release:
     runs-on: macos-latest
-    
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -24,49 +24,25 @@ jobs:
           submodules: recursive
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract current version
+      - name: Extract version and check tag
         id: version
         run: |
           VERSION=$(sed -n 's/.*project(LeslieMaxwell VERSION \([0-9]*\.[0-9]*\.[0-9]*\).*/\1/p' ${{ env.PLUGIN_DIR }}/CMakeLists.txt)
-          echo "current=$VERSION" >> $GITHUB_OUTPUT
-          
-          # Parse version components
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
-          NEW_PATCH=$((PATCH + 1))
-          NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
-          echo "new=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "Current version: $VERSION -> New version: $NEW_VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          TAG_NAME="${{ env.PROJECT_NAME }}_v${VERSION}"
+          echo "tag=$TAG_NAME" >> $GITHUB_OUTPUT
 
-      - name: Check if tag exists
-        id: tag_check
-        run: |
-          if git rev-parse "${{ env.PROJECT_NAME }}_v${{ steps.version.outputs.current }}" >/dev/null 2>&1; then
-            echo "exists=true" >> $GITHUB_OUTPUT
+          if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
+            echo "Release $TAG_NAME already exists — skipping"
+            echo "skip=true" >> $GITHUB_OUTPUT
           else
-            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "Will create release $TAG_NAME"
+            echo "skip=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Bump version in CMakeLists.txt
-        if: steps.tag_check.outputs.exists == 'true'
-        run: |
-          sed -i '' "s/project(LeslieMaxwell VERSION ${{ steps.version.outputs.current }}/project(LeslieMaxwell VERSION ${{ steps.version.outputs.new }}/" ${{ env.PLUGIN_DIR }}/CMakeLists.txt
-          echo "VERSION=${{ steps.version.outputs.new }}" >> $GITHUB_ENV
-
-      - name: Use current version
-        if: steps.tag_check.outputs.exists == 'false'
-        run: |
-          echo "VERSION=${{ steps.version.outputs.current }}" >> $GITHUB_ENV
-
-      - name: Commit version bump
-        if: steps.tag_check.outputs.exists == 'true'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add ${{ env.PLUGIN_DIR }}/CMakeLists.txt
-          git commit -m "Bump LeslieMaxwell version to ${{ env.VERSION }}"
-          git push
-
       - name: Import Code Signing Certificate
+        if: steps.version.outputs.skip == 'false'
         env:
           APPLE_CERTIFICATE_P12: ${{ secrets.APPLE_CERTIFICATE_P12 }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
@@ -76,11 +52,11 @@ jobs:
           # Create temporary keychain
           KEYCHAIN_PATH=$RUNNER_TEMP/signing.keychain-db
           KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
-          
+
           security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          
+
           # Import Developer ID Application certificate (identity = cert + private key)
           echo "$APPLE_CERTIFICATE_P12" | base64 --decode > $RUNNER_TEMP/certificate.p12
           security import $RUNNER_TEMP/certificate.p12 -P "$APPLE_CERTIFICATE_PASSWORD" -A -f pkcs12 -k "$KEYCHAIN_PATH"
@@ -88,15 +64,16 @@ jobs:
           # Import Developer ID Installer certificate
           echo "$APPLE_INSTALLER_CERTIFICATE_P12" | base64 --decode > $RUNNER_TEMP/installer_certificate.p12
           security import $RUNNER_TEMP/installer_certificate.p12 -P "$APPLE_INSTALLER_CERTIFICATE_PASSWORD" -A -f pkcs12 -k "$KEYCHAIN_PATH"
-          
+
           # Set keychain to be used (prepend to existing list, don't replace)
           security list-keychain -d user -s "$KEYCHAIN_PATH" $(security list-keychain -d user | tr -d '"')
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-          
+
           # Verify certificates
           security find-identity -v -p codesigning "$KEYCHAIN_PATH"
 
       - name: Store notarization credentials
+        if: steps.version.outputs.skip == 'false'
         env:
           APPLE_ID_EMAIL: ${{ secrets.APPLE_ID_EMAIL }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
@@ -108,12 +85,14 @@ jobs:
             --password "$APPLE_APP_SPECIFIC_PASSWORD"
 
       - name: Configure CMake
+        if: steps.version.outputs.skip == 'false'
         run: |
           cmake -B ${{ env.PLUGIN_DIR }}/cmake-build-release \
             -S ${{ env.PLUGIN_DIR }} \
             -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
 
       - name: Build plugin
+        if: steps.version.outputs.skip == 'false'
         run: |
           cmake --build ${{ env.PLUGIN_DIR }}/cmake-build-release \
             --config ${{ env.BUILD_TYPE }} \
@@ -121,6 +100,7 @@ jobs:
             --parallel
 
       - name: Sign, notarize and create installer
+        if: steps.version.outputs.skip == 'false'
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_ID_EMAIL: ${{ secrets.APPLE_ID_EMAIL }}
@@ -146,6 +126,7 @@ jobs:
             "LICENSE"
 
       - name: Read release metadata
+        if: steps.version.outputs.skip == 'false'
         id: meta
         run: |
           DESCRIPTION=$(sed -n 's/^description: *"\(.*\)"/\1/p' ${{ env.PLUGIN_DIR }}/release-info.yml)
@@ -158,6 +139,7 @@ jobs:
           echo "image_height=$IMAGE_HEIGHT" >> $GITHUB_OUTPUT
 
       - name: Create Git tag
+        if: steps.version.outputs.skip == 'false'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -167,6 +149,7 @@ jobs:
           echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
 
       - name: Create GitHub Release
+        if: steps.version.outputs.skip == 'false'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
