@@ -121,11 +121,20 @@ jobs:
 
       - name: Sign, notarize and create installer
         env:
-          APPLE_CODESIGN_IDENTITY: ${{ secrets.APPLE_CODESIGN_IDENTITY }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           APPLE_ID_EMAIL: ${{ secrets.APPLE_ID_EMAIL }}
           NOTARIZATION_KEYCHAIN_PROFILE: "notarization-profile"
         run: |
+          # Extract codesign identity SHA-1 hash from keychain to avoid UTF-8 encoding issues with name
+          APPLE_CODESIGN_IDENTITY=$(security find-identity -v -p codesigning | grep "Developer ID Application" | head -1 | awk '{print $2}')
+          if [ -z "$APPLE_CODESIGN_IDENTITY" ]; then
+            echo "ERROR: No Developer ID Application identity found in keychain"
+            security find-identity -v -p codesigning
+            exit 1
+          fi
+          echo "Using codesign identity: $APPLE_CODESIGN_IDENTITY"
+          export APPLE_CODESIGN_IDENTITY
+
           ./scripts/sign_and_notarize.sh \
             Release \
             "com.dBobStudio.LeslieMaxwell" \
