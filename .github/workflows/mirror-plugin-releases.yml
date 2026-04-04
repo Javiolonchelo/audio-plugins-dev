@@ -1,85 +1,104 @@
 name: Mirror Plugin Releases
 
 on:
-  schedule:
-    - cron: '*/30 * * * *'  # Check every 30 minutes
-  workflow_dispatch:         # Manual trigger
+  push:
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
-  mirror-releases:
+  detect-changes:
     runs-on: ubuntu-latest
+    outputs:
+      plugins: ${{ steps.check.outputs.plugins }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+          submodules: false
 
+      - name: Detect submodule pointer changes
+        id: check
+        run: |
+          PLUGINS="[]"
+
+          # Check if LeslieMaxwell submodule pointer changed
+          if git diff HEAD~1 HEAD --name-only | grep -q '^LeslieMaxwell$'; then
+            PLUGINS=$(echo "$PLUGINS" | jq -c '. + [{"repo":"Javiolonchelo/LeslieMaxwell","name":"Leslie Maxwell","prefix":"leslie-maxwell"}]')
+          fi
+
+          # Check if French Coconut Gain submodule pointer changed
+          if git diff HEAD~1 HEAD --name-only | grep -q '^French Coconut Gain$'; then
+            PLUGINS=$(echo "$PLUGINS" | jq -c '. + [{"repo":"Javiolonchelo/FrenchCoconutGain","name":"French Coconut Gain","prefix":"french-coconut-gain"}]')
+          fi
+
+          # For workflow_dispatch, check all plugins
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            PLUGINS='[{"repo":"Javiolonchelo/LeslieMaxwell","name":"Leslie Maxwell","prefix":"leslie-maxwell"},{"repo":"Javiolonchelo/FrenchCoconutGain","name":"French Coconut Gain","prefix":"french-coconut-gain"}]'
+          fi
+
+          echo "plugins=$PLUGINS" >> $GITHUB_OUTPUT
+          echo "Plugins to check: $PLUGINS"
+
+  mirror-releases:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.plugins != '[]'
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        plugin:
-          - repo: Javiolonchelo/LeslieMaxwell
-            name: Leslie Maxwell
-            prefix: leslie-maxwell
-          - repo: Javiolonchelo/FrenchCoconutGain
-            name: French Coconut Gain
-            prefix: french-coconut-gain
-
+        plugin: ${{ fromJSON(needs.detect-changes.outputs.plugins) }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check for new releases on ${{ matrix.plugin.name }}
+      - name: Mirror releases from ${{ matrix.plugin.name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Checking releases on ${{ matrix.plugin.repo }}..."
 
-          # Get the latest release from the plugin repo (public, no auth needed)
-          LATEST=$(gh release list --repo "${{ matrix.plugin.repo }}" --limit 1 --json tagName,name,body,isDraft,isPrerelease,assets 2>/dev/null)
+          # Get all releases from the plugin repo
+          RELEASES=$(gh release list --repo "${{ matrix.plugin.repo }}" --limit 10 --json tagName,name,body,isDraft,isPrerelease 2>/dev/null)
 
-          if [ -z "$LATEST" ] || [ "$LATEST" = "[]" ]; then
+          if [ -z "$RELEASES" ] || [ "$RELEASES" = "[]" ]; then
             echo "No releases found on ${{ matrix.plugin.repo }}"
             exit 0
           fi
 
-          TAG=$(echo "$LATEST" | jq -r '.[0].tagName')
-          NAME=$(echo "$LATEST" | jq -r '.[0].name')
-          BODY=$(echo "$LATEST" | jq -r '.[0].body')
+          echo "$RELEASES" | jq -r '.[].tagName' | while read -r TAG; do
+            MIRROR_TAG="${{ matrix.plugin.prefix }}-${TAG}"
 
-          # Check if we already have a mirrored release with this tag
-          MIRROR_TAG="${{ matrix.plugin.prefix }}-${TAG}"
-          if gh release view "$MIRROR_TAG" >/dev/null 2>&1; then
-            echo "Release $MIRROR_TAG already exists — skipping"
-            exit 0
-          fi
+            # Skip if already mirrored
+            if gh release view "$MIRROR_TAG" >/dev/null 2>&1; then
+              echo "Release $MIRROR_TAG already exists — skipping"
+              continue
+            fi
 
-          echo "New release found: $TAG ($NAME)"
-          echo "Creating mirrored release: $MIRROR_TAG"
+            NAME=$(echo "$RELEASES" | jq -r --arg t "$TAG" '.[] | select(.tagName == $t) | .name')
+            BODY=$(echo "$RELEASES" | jq -r --arg t "$TAG" '.[] | select(.tagName == $t) | .body')
 
-          # Download all assets from the plugin release
-          DOWNLOAD_DIR=$(mktemp -d)
-          ASSET_URLS=$(echo "$LATEST" | jq -r '.[0].assets[].url // empty')
+            echo "Mirroring: $TAG -> $MIRROR_TAG"
 
-          if [ -n "$ASSET_URLS" ]; then
+            # Download assets
+            DOWNLOAD_DIR=$(mktemp -d)
             gh release download "$TAG" --repo "${{ matrix.plugin.repo }}" --dir "$DOWNLOAD_DIR" 2>/dev/null || true
-          fi
 
-          # Create the mirrored release
-          RELEASE_BODY="$(cat <<EOF
-          Mirrored from [${{ matrix.plugin.repo }}](https://github.com/${{ matrix.plugin.repo }}/releases/tag/${TAG})
+            RELEASE_BODY="Mirrored from [${{ matrix.plugin.repo }}](https://github.com/${{ matrix.plugin.repo }}/releases/tag/${TAG})
 
           ---
 
-          ${BODY}
-          EOF
-          )"
+          ${BODY}"
 
-          # Build the gh release create command
-          ASSET_FILES=$(find "$DOWNLOAD_DIR" -type f 2>/dev/null)
-          if [ -n "$ASSET_FILES" ]; then
-            gh release create "$MIRROR_TAG" \
-              --title "${{ matrix.plugin.name }} $TAG" \
-              --notes "$RELEASE_BODY" \
-              $DOWNLOAD_DIR/*
-          else
-            gh release create "$MIRROR_TAG" \
-              --title "${{ matrix.plugin.name }} $TAG" \
-              --notes "$RELEASE_BODY"
-          fi
+            ASSET_FILES=$(find "$DOWNLOAD_DIR" -type f 2>/dev/null | head -20)
+            if [ -n "$ASSET_FILES" ]; then
+              gh release create "$MIRROR_TAG" \
+                --title "${{ matrix.plugin.name }} $TAG" \
+                --notes "$RELEASE_BODY" \
+                $DOWNLOAD_DIR/*
+            else
+              gh release create "$MIRROR_TAG" \
+                --title "${{ matrix.plugin.name }} $TAG" \
+                --notes "$RELEASE_BODY"
+            fi
 
-          echo "Mirrored release created: $MIRROR_TAG"
-          rm -rf "$DOWNLOAD_DIR"
+            echo "Created: $MIRROR_TAG"
+            rm -rf "$DOWNLOAD_DIR"
+          done
