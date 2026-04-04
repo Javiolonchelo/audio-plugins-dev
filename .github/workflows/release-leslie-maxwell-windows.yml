@@ -37,8 +37,7 @@ jobs:
         run: |
           cmake -B ${{ env.PLUGIN_DIR }}/cmake-build-release `
             -S ${{ env.PLUGIN_DIR }} `
-            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} `
-            -DCMAKE_DISABLE_FIND_PACKAGE_Doxygen=TRUE
+            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
 
       - name: Build plugin
         run: |

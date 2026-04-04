@@ -1,0 +1,123 @@
+name: Pluginval Validation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  validate:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+        plugin:
+          - name: LeslieMaxwell
+            dir: LeslieMaxwell
+            display: "Leslie Maxwell"
+          - name: French_Coconut_Gain
+            dir: "French Coconut Gain"
+            display: "French Coconut Gain"
+
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.plugin.display }} (${{ matrix.os }})
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libasound2-dev libjack-jackd2-dev ladspa-sdk \
+            libfreetype-dev libfontconfig1-dev \
+            libx11-dev libxcomposite-dev libxcursor-dev libxext-dev \
+            libxinerama-dev libxrandr-dev libxrender-dev \
+            libglu1-mesa-dev mesa-common-dev \
+            libcurl4-openssl-dev libwebkit2gtk-4.1-dev
+
+      - name: Configure CMake
+        shell: bash
+        run: |
+          cmake -B "${{ matrix.plugin.dir }}/build" \
+            -S "${{ matrix.plugin.dir }}" \
+            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+
+      - name: Build VST3
+        shell: bash
+        run: |
+          cmake --build "${{ matrix.plugin.dir }}/build" \
+            --config ${{ env.BUILD_TYPE }} \
+            --target ${{ matrix.plugin.name }}_VST3 \
+            --parallel
+
+      - name: Build AU
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          cmake --build "${{ matrix.plugin.dir }}/build" \
+            --config ${{ env.BUILD_TYPE }} \
+            --target ${{ matrix.plugin.name }}_AU \
+            --parallel
+
+      - name: Download pluginval
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            curl -L "https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_macOS.zip" -o pluginval.zip
+            unzip pluginval.zip
+            PLUGINVAL="./pluginval.app/Contents/MacOS/pluginval"
+          elif [ "$RUNNER_OS" = "Windows" ]; then
+            curl -L "https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Windows.zip" -o pluginval.zip
+            unzip pluginval.zip
+            PLUGINVAL="./pluginval.exe"
+          else
+            curl -L "https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Linux.zip" -o pluginval.zip
+            unzip pluginval.zip
+            chmod +x ./pluginval
+            PLUGINVAL="./pluginval"
+          fi
+          echo "PLUGINVAL=$PLUGINVAL" >> $GITHUB_ENV
+
+      - name: Validate VST3 with pluginval (strictness 10)
+        shell: bash
+        run: |
+          ARTEFACTS="${{ matrix.plugin.dir }}/build/${{ matrix.plugin.name }}_artefacts/${{ env.BUILD_TYPE }}/VST3"
+
+          # Find the .vst3 bundle
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            VST3=$(find "$ARTEFACTS" -name "*.vst3" -type d | head -1)
+          else
+            VST3=$(find "$ARTEFACTS" -name "*.vst3" | head -1)
+          fi
+
+          if [ -z "$VST3" ]; then
+            echo "ERROR: VST3 plugin not found in $ARTEFACTS"
+            exit 1
+          fi
+
+          echo "Validating VST3: $VST3"
+          $PLUGINVAL --validate "$VST3" --strictness-level 10 --verbose
+
+      - name: Validate AU with pluginval (strictness 10)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          ARTEFACTS="${{ matrix.plugin.dir }}/build/${{ matrix.plugin.name }}_artefacts/${{ env.BUILD_TYPE }}/AU"
+          AU=$(find "$ARTEFACTS" -name "*.component" | head -1)
+
+          if [ -z "$AU" ]; then
+            echo "WARNING: AU plugin not found — skipping"
+            exit 0
+          fi
+
+          echo "Validating AU: $AU"
+          $PLUGINVAL --validate "$AU" --strictness-level 10 --verbose
