@@ -80,13 +80,13 @@ jobs:
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           
-          # Import Developer ID Application certificate
+          # Import Developer ID Application certificate (identity = cert + private key)
           echo "$APPLE_CERTIFICATE_P12" | base64 --decode > $RUNNER_TEMP/certificate.p12
-          security import $RUNNER_TEMP/certificate.p12 -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
-          
+          security import $RUNNER_TEMP/certificate.p12 -P "$APPLE_CERTIFICATE_PASSWORD" -A -f pkcs12 -k "$KEYCHAIN_PATH"
+
           # Import Developer ID Installer certificate
           echo "$APPLE_INSTALLER_CERTIFICATE_P12" | base64 --decode > $RUNNER_TEMP/installer_certificate.p12
-          security import $RUNNER_TEMP/installer_certificate.p12 -P "$APPLE_INSTALLER_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security import $RUNNER_TEMP/installer_certificate.p12 -P "$APPLE_INSTALLER_CERTIFICATE_PASSWORD" -A -f pkcs12 -k "$KEYCHAIN_PATH"
           
           # Set keychain to be used (prepend to existing list, don't replace)
           security list-keychain -d user -s "$KEYCHAIN_PATH" $(security list-keychain -d user | tr -d '"')
