@@ -1,0 +1,85 @@
+name: Mirror Plugin Releases
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'  # Check every 30 minutes
+  workflow_dispatch:         # Manual trigger
+
+jobs:
+  mirror-releases:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        plugin:
+          - repo: Javiolonchelo/LeslieMaxwell
+            name: Leslie Maxwell
+            prefix: leslie-maxwell
+          - repo: Javiolonchelo/FrenchCoconutGain
+            name: French Coconut Gain
+            prefix: french-coconut-gain
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for new releases on ${{ matrix.plugin.name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Checking releases on ${{ matrix.plugin.repo }}..."
+
+          # Get the latest release from the plugin repo (public, no auth needed)
+          LATEST=$(gh release list --repo "${{ matrix.plugin.repo }}" --limit 1 --json tagName,name,body,isDraft,isPrerelease,assets 2>/dev/null)
+
+          if [ -z "$LATEST" ] || [ "$LATEST" = "[]" ]; then
+            echo "No releases found on ${{ matrix.plugin.repo }}"
+            exit 0
+          fi
+
+          TAG=$(echo "$LATEST" | jq -r '.[0].tagName')
+          NAME=$(echo "$LATEST" | jq -r '.[0].name')
+          BODY=$(echo "$LATEST" | jq -r '.[0].body')
+
+          # Check if we already have a mirrored release with this tag
+          MIRROR_TAG="${{ matrix.plugin.prefix }}-${TAG}"
+          if gh release view "$MIRROR_TAG" >/dev/null 2>&1; then
+            echo "Release $MIRROR_TAG already exists — skipping"
+            exit 0
+          fi
+
+          echo "New release found: $TAG ($NAME)"
+          echo "Creating mirrored release: $MIRROR_TAG"
+
+          # Download all assets from the plugin release
+          DOWNLOAD_DIR=$(mktemp -d)
+          ASSET_URLS=$(echo "$LATEST" | jq -r '.[0].assets[].url // empty')
+
+          if [ -n "$ASSET_URLS" ]; then
+            gh release download "$TAG" --repo "${{ matrix.plugin.repo }}" --dir "$DOWNLOAD_DIR" 2>/dev/null || true
+          fi
+
+          # Create the mirrored release
+          RELEASE_BODY="$(cat <<EOF
+          Mirrored from [${{ matrix.plugin.repo }}](https://github.com/${{ matrix.plugin.repo }}/releases/tag/${TAG})
+
+          ---
+
+          ${BODY}
+          EOF
+          )"
+
+          # Build the gh release create command
+          ASSET_FILES=$(find "$DOWNLOAD_DIR" -type f 2>/dev/null)
+          if [ -n "$ASSET_FILES" ]; then
+            gh release create "$MIRROR_TAG" \
+              --title "${{ matrix.plugin.name }} $TAG" \
+              --notes "$RELEASE_BODY" \
+              $DOWNLOAD_DIR/*
+          else
+            gh release create "$MIRROR_TAG" \
+              --title "${{ matrix.plugin.name }} $TAG" \
+              --notes "$RELEASE_BODY"
+          fi
+
+          echo "Mirrored release created: $MIRROR_TAG"
+          rm -rf "$DOWNLOAD_DIR"

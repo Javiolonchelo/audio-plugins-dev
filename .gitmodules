@@ -1,9 +1,12 @@
-[submodule "/Users/javiolonchelo/audio-plugins-dev/ext/melatonin_inspector"]
-	path = /Users/javiolonchelo/audio-plugins-dev/ext/melatonin_inspector
-	url = https://github.com/sudara/melatonin_inspector.git
 [submodule "ext/melatonin_inspector"]
 	path = ext/melatonin_inspector
 	url = https://github.com/sudara/melatonin_inspector.git
 [submodule "ext/melatonin_blur"]
 	path = ext/melatonin_blur
 	url = https://github.com/sudara/melatonin_blur.git
+[submodule "LeslieMaxwell"]
+	path = LeslieMaxwell
+	url = https://github.com/Javiolonchelo/LeslieMaxwell.git
+[submodule "French Coconut Gain"]
+	path = French Coconut Gain
+	url = https://github.com/Javiolonchelo/FrenchCoconutGain.git

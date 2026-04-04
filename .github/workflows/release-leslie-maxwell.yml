@@ -1,0 +1,169 @@
+name: Release Leslie Maxwell
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'LeslieMaxwell/**'
+      - '.github/workflows/release-leslie-maxwell.yml'
+
+env:
+  BUILD_TYPE: Release
+  PLUGIN_DIR: LeslieMaxwell
+
+jobs:
+  build-and-release:
+    runs-on: macos-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract current version
+        id: version
+        run: |
+          VERSION=$(sed -n 's/.*project(LeslieMaxwell VERSION \([0-9]*\.[0-9]*\.[0-9]*\).*/\1/p' ${{ env.PLUGIN_DIR }}/CMakeLists.txt)
+          echo "current=$VERSION" >> $GITHUB_OUTPUT
+          
+          # Parse version components
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          NEW_PATCH=$((PATCH + 1))
+          NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
+          echo "new=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "Current version: $VERSION -> New version: $NEW_VERSION"
+
+      - name: Check if tag exists
+        id: tag_check
+        run: |
+          if git rev-parse "v${{ steps.version.outputs.current }}" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Bump version in CMakeLists.txt
+        if: steps.tag_check.outputs.exists == 'true'
+        run: |
+          sed -i '' "s/project(LeslieMaxwell VERSION ${{ steps.version.outputs.current }}/project(LeslieMaxwell VERSION ${{ steps.version.outputs.new }}/" ${{ env.PLUGIN_DIR }}/CMakeLists.txt
+          echo "VERSION=${{ steps.version.outputs.new }}" >> $GITHUB_ENV
+
+      - name: Use current version
+        if: steps.tag_check.outputs.exists == 'false'
+        run: |
+          echo "VERSION=${{ steps.version.outputs.current }}" >> $GITHUB_ENV
+
+      - name: Commit version bump
+        if: steps.tag_check.outputs.exists == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add ${{ env.PLUGIN_DIR }}/CMakeLists.txt
+          git commit -m "Bump LeslieMaxwell version to ${{ env.VERSION }}"
+          git push
+
+      - name: Import Code Signing Certificate
+        env:
+          APPLE_CERTIFICATE_P12: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_INSTALLER_CERTIFICATE_P12: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_P12 }}
+          APPLE_INSTALLER_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_INSTALLER_CERTIFICATE_PASSWORD }}
+        run: |
+          # Create temporary keychain
+          KEYCHAIN_PATH=$RUNNER_TEMP/signing.keychain-db
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+          
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          
+          # Import Developer ID Application certificate
+          echo "$APPLE_CERTIFICATE_P12" | base64 --decode > $RUNNER_TEMP/certificate.p12
+          security import $RUNNER_TEMP/certificate.p12 -P "$APPLE_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          
+          # Import Developer ID Installer certificate
+          echo "$APPLE_INSTALLER_CERTIFICATE_P12" | base64 --decode > $RUNNER_TEMP/installer_certificate.p12
+          security import $RUNNER_TEMP/installer_certificate.p12 -P "$APPLE_INSTALLER_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          
+          # Set keychain to be used
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          
+          # Verify certificates
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+
+      - name: Store notarization credentials
+        env:
+          APPLE_ID_EMAIL: ${{ secrets.APPLE_ID_EMAIL }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+        run: |
+          xcrun notarytool store-credentials "notarization-profile" \
+            --apple-id "$APPLE_ID_EMAIL" \
+            --team-id "$APPLE_TEAM_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD"
+
+      - name: Configure CMake
+        run: |
+          cmake -B ${{ env.PLUGIN_DIR }}/cmake-build-release \
+            -S ${{ env.PLUGIN_DIR }} \
+            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
+
+      - name: Build plugin
+        run: |
+          cmake --build ${{ env.PLUGIN_DIR }}/cmake-build-release \
+            --config ${{ env.BUILD_TYPE }} \
+            --target LeslieMaxwell_VST3 LeslieMaxwell_AU LeslieMaxwell_Standalone \
+            --parallel
+
+      - name: Sign, notarize and create installer
+        env:
+          APPLE_CODESIGN_IDENTITY: ${{ secrets.APPLE_CODESIGN_IDENTITY }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_ID_EMAIL: ${{ secrets.APPLE_ID_EMAIL }}
+          NOTARIZATION_KEYCHAIN_PROFILE: "notarization-profile"
+        run: |
+          ./scripts/sign_and_notarize.sh \
+            Release \
+            "com.dBobStudio.LeslieMaxwell" \
+            "Leslie Maxwell" \
+            "${{ env.VERSION }}" \
+            "LeslieMaxwell" \
+            "${{ env.PLUGIN_DIR }}" \
+            "LICENSE"
+
+      - name: Create Git tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "v${{ env.VERSION }}" -m "Release Leslie Maxwell v${{ env.VERSION }}"
+          git push origin "v${{ env.VERSION }}"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.VERSION }}
+          name: Leslie Maxwell v${{ env.VERSION }}
+          body: |
+            ## Leslie Maxwell v${{ env.VERSION }}
+            
+            ### Installation
+            Download the `.pkg` installer and run it. You can choose to install:
+            - VST3 plugin → `/Library/Audio/Plug-Ins/VST3/`
+            - Audio Unit (AU) → `/Library/Audio/Plug-Ins/Components/`
+            
+            ### Changelog
+            See commit history for changes.
+          files: |
+            ${{ env.PLUGIN_DIR }}/cmake-build-release/installer_output/*.pkg
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cleanup keychain
+        if: always()
+        run: |
+          security delete-keychain $RUNNER_TEMP/signing.keychain-db || true

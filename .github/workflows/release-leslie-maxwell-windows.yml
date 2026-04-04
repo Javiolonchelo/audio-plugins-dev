@@ -1,0 +1,170 @@
+name: Release Leslie Maxwell (Windows)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'LeslieMaxwell/**'
+      - '.github/workflows/release-leslie-maxwell-windows.yml'
+
+env:
+  BUILD_TYPE: Release
+  PLUGIN_DIR: LeslieMaxwell
+  PLUGIN_NAME: "Leslie Maxwell"
+  PROJECT_NAME: LeslieMaxwell
+  INSTALLER_APP_ID: "{{B7E2F8A1-3C4D-4E5F-9A6B-7C8D9E0F1A2B}"
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract current version
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(sed -n 's/.*project(LeslieMaxwell VERSION \([0-9]*\.[0-9]*\.[0-9]*\).*/\1/p' ${{ env.PLUGIN_DIR }}/CMakeLists.txt)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Configure CMake
+        run: |
+          cmake -B ${{ env.PLUGIN_DIR }}/cmake-build-release `
+            -S ${{ env.PLUGIN_DIR }} `
+            -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} `
+            -DCMAKE_DISABLE_FIND_PACKAGE_Doxygen=TRUE
+
+      - name: Build plugin
+        run: |
+          cmake --build ${{ env.PLUGIN_DIR }}/cmake-build-release `
+            --config ${{ env.BUILD_TYPE }} `
+            --target LeslieMaxwell_VST3 LeslieMaxwell_Standalone `
+            --parallel
+
+      - name: Install Certum cloud signing tools
+        shell: powershell
+        run: |
+          Invoke-WebRequest -Uri "https://simplysign-downloads.certum.eu/SimplySignDesktop/Windows/latest/SimplySignDesktop.msi" `
+            -OutFile "$env:RUNNER_TEMP\SimplySignDesktop.msi"
+          Start-Process msiexec.exe -ArgumentList "/i", "$env:RUNNER_TEMP\SimplySignDesktop.msi", "/quiet", "/norestart" -Wait
+
+          Invoke-WebRequest -Uri "https://simplysign-downloads.certum.eu/proCertumSmartSign/Windows/latest/proCertumSmartSign.exe" `
+            -OutFile "$env:RUNNER_TEMP\proCertumSmartSign.exe"
+          Start-Process "$env:RUNNER_TEMP\proCertumSmartSign.exe" -ArgumentList "/SILENT" -Wait
+
+      - name: Sign plugins with Certum SimplySign
+        shell: powershell
+        env:
+          CERTUM_SIMPLYSIGN_TOKEN: ${{ secrets.CERTUM_SIMPLYSIGN_TOKEN }}
+          CERTUM_SIMPLYSIGN_PIN: ${{ secrets.CERTUM_SIMPLYSIGN_PIN }}
+        run: |
+          $buildDir = "${{ env.PLUGIN_DIR }}/cmake-build-release"
+          $artefactsDir = "$buildDir/${{ env.PROJECT_NAME }}_artefacts/${{ env.BUILD_TYPE }}"
+
+          $signtool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter "signtool.exe" |
+            Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName
+
+          if (-not $signtool) {
+            Write-Error "signtool.exe not found"
+            exit 1
+          }
+
+          Write-Host "Using signtool: $signtool"
+
+          # Sign VST3
+          $vst3 = Get-ChildItem -Path "$artefactsDir\VST3" -Recurse -Filter "*.vst3" | Select-Object -First 1 -ExpandProperty FullName
+          if ($vst3) {
+            Write-Host "Signing VST3: $vst3"
+            & $signtool sign /fd sha256 /tr http://time.certum.pl /td sha256 /v "$vst3"
+            & $signtool verify /pa "$vst3"
+          }
+
+          # Sign Standalone exe
+          $standalone = Get-ChildItem -Path "$artefactsDir\Standalone" -Recurse -Filter "*.exe" | Select-Object -First 1 -ExpandProperty FullName
+          if ($standalone) {
+            Write-Host "Signing Standalone: $standalone"
+            & $signtool sign /fd sha256 /tr http://time.certum.pl /td sha256 /v "$standalone"
+            & $signtool verify /pa "$standalone"
+          }
+
+      - name: Build installer with InnoSetup
+        shell: cmd
+        run: |
+          set ARTEFACTS_DIR=%PLUGIN_DIR%\cmake-build-release\%PROJECT_NAME%_artefacts\%BUILD_TYPE%
+          set OUTPUT_DIR=%PLUGIN_DIR%\cmake-build-release\installer_output
+          mkdir "%OUTPUT_DIR%" 2>nul
+          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" ^
+            /DMyAppName="%PLUGIN_NAME%" ^
+            /DMyAppVersion="%VERSION%" ^
+            /DMyAppId="%INSTALLER_APP_ID%" ^
+            /DOutputDir="%OUTPUT_DIR%" ^
+            /DPluginSourceDir="%ARTEFACTS_DIR%\VST3" ^
+            /DStandaloneSourceDir="%ARTEFACTS_DIR%\Standalone" ^
+            /DLicenseFile="LICENSE" ^
+            "scripts\installer_template.iss"
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+
+      - name: Sign installer
+        shell: powershell
+        env:
+          CERTUM_SIMPLYSIGN_TOKEN: ${{ secrets.CERTUM_SIMPLYSIGN_TOKEN }}
+          CERTUM_SIMPLYSIGN_PIN: ${{ secrets.CERTUM_SIMPLYSIGN_PIN }}
+        run: |
+          $outputDir = "${{ env.PLUGIN_DIR }}/cmake-build-release/installer_output"
+          $installer = Get-ChildItem -Path $outputDir -Filter "*-Windows.exe" |
+            Select-Object -First 1 -ExpandProperty FullName
+
+          $signtool = Get-ChildItem -Path "C:\Program Files (x86)\Windows Kits\10\bin" -Recurse -Filter "signtool.exe" |
+            Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName
+
+          Write-Host "Signing installer: $installer"
+          & $signtool sign /fd sha256 /tr http://time.certum.pl /td sha256 /v "$installer"
+          & $signtool verify /pa "$installer"
+
+      - name: Upload to existing release
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          INSTALLER=$(find "${{ env.PLUGIN_DIR }}/cmake-build-release/installer_output" -name "*-Windows.exe" | head -1)
+
+          if [ -z "$INSTALLER" ]; then
+            echo "ERROR: Installer not found"
+            exit 1
+          fi
+
+          echo "Installer: $INSTALLER"
+
+          # Check if a release for this version already exists (from macOS workflow)
+          if gh release view "v$VERSION" >/dev/null 2>&1; then
+            echo "Release v$VERSION exists — uploading Windows installer"
+            gh release upload "v$VERSION" "$INSTALLER" --clobber
+          else
+            echo "Creating new release v$VERSION"
+            gh release create "v$VERSION" \
+              --title "Leslie Maxwell v$VERSION" \
+              --notes "$(cat <<'NOTES'
+          ## Leslie Maxwell v$VERSION
+
+          ### Installation (Windows)
+          Download the `.exe` installer and run it. You can choose to install:
+          - VST3 plugin
+          - Standalone application
+
+          ### Installation (macOS)
+          Download the `.pkg` installer.
+
+          ### Changelog
+          See commit history for changes.
+          NOTES
+          )" \
+              "$INSTALLER"
+          fi
