@@ -56,7 +56,7 @@ jobs:
           echo "Checking releases on ${{ matrix.plugin.repo }}..."
 
           # Get all releases from the plugin repo
-          RELEASES=$(gh release list --repo "${{ matrix.plugin.repo }}" --limit 10 --json tagName,name,body,isDraft,isPrerelease 2>/dev/null)
+          RELEASES=$(gh release list --repo "${{ matrix.plugin.repo }}" --limit 10 --json tagName,name,body,isDraft,isPrerelease 2>/dev/null || echo "[]")
 
           if [ -z "$RELEASES" ] || [ "$RELEASES" = "[]" ]; then
             echo "No releases found on ${{ matrix.plugin.repo }}"
